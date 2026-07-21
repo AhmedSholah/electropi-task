@@ -133,8 +133,14 @@ const onSubmit = handleSubmit(async (values) => {
           class="mt-6"
         />
 
-        <USeparator label="Demo access" class="my-6" />
+        <p class="mt-6 text-center text-sm text-muted">
+          New to TaskFlow?
+          <ULink to="/register" class="font-semibold text-primary"
+            >Create an account</ULink
+          >
+        </p>
 
+        <USeparator label="Demo access" class="my-6" />
         <UButton
           type="button"
           color="primary"
@@ -151,18 +157,7 @@ const onSubmit = handleSubmit(async (values) => {
             >
           </span>
         </UButton>
-
-        <p class="mt-6 text-center text-sm text-muted">
-          New to TaskFlow?
-          <ULink to="/register" class="font-semibold text-primary"
-            >Create an account</ULink
-          >
-        </p>
       </form>
     </UCard>
-
-    <p class="mt-6 text-center text-xs text-slate-500">
-      In-memory demo · Data resets when the server restarts
-    </p>
   </div>
 </template>
