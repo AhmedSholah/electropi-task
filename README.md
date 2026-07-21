@@ -9,6 +9,7 @@ TaskFlow is a compact, full-stack task management app built for the Vue.js techn
 - Task dashboard with live totals for pending, in-progress, and completed work
 - Debounced server-side title search, status filtering, sorting, and paginated results
 - Created and live relative last-updated timestamps on task cards and task details
+- Nuxt UI calendar datepicker with past-date prevention for task due dates
 - Reusable create/edit form powered by VeeValidate and Nuxt UI fields
 - Matching server-side validation for all task writes
 - Responsive layout, loading skeletons, distinct empty states, retryable errors, and delete confirmation
