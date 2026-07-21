@@ -64,12 +64,14 @@ async function handleCreate(payload: TaskPayload) {
     </UCard>
 
     <TaskForm
+      data-tour="task-form"
       class="mt-4 shadow-sm"
       submit-label="Create task"
       :submitting="submitting"
       :submit-error="submitError"
       :assignable-users="assignableUsers"
       :assignee-error="assigneeError"
+      :allow-navigation="submitting"
       @submit="handleCreate"
       @cancel="navigateTo('/')"
     />

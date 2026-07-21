@@ -1,6 +1,6 @@
 # TaskFlow
 
-TaskFlow is a full-stack task management mini app built for the Vue.js technical task. It uses Vue 3's Composition API through Nuxt, Pinia for client state, TypeScript throughout, Tailwind CSS through Nuxt UI, and a libSQL/Turso database behind Nuxt server API routes.
+TaskFlow is a full-stack task management mini app built for the Vue.js technical task. It uses Vue 3's Composition API through Nuxt, Pinia for client state, TypeScript throughout, Tailwind CSS through Nuxt UI, and a Turso database behind Nuxt server API routes.
 
 ## Features
 
@@ -11,8 +11,9 @@ TaskFlow is a full-stack task management mini app built for the Vue.js technical
 - Display skeleton loading states, empty states, retryable API errors, submit progress, and delete progress.
 - Open a dedicated task detail/edit route and a separate create-task route.
 - Register, sign in, sign out, and keep authenticated sessions in secure HTTP-only cookies.
+- Welcome newly registered users with a responsive, keyboard-accessible tour that guides them through creating and saving a real task.
 - Assign tasks to another user; assignees can view the task and update only its status.
-- Persist users, sessions, tasks, and assignments in libSQL locally or Turso in production.
+- Persist users, sessions, tasks, and assignments in Turso.
 - Seed a ready-to-use demo account and sample data.
 
 ## Technical-task coverage
@@ -23,7 +24,7 @@ TaskFlow is a full-stack task management mini app built for the Vue.js technical
 | Task list and CRUD | Dashboard, create page, detail/edit page, server API routes, and delete dialog. |
 | Title and future-date validation | Shared typed validation is reused by the form and server endpoints. |
 | Status filter and title search | Debounced, server-side search/filtering with pagination and race protection. |
-| Initial API data | Nuxt API routes load seeded data from libSQL/Turso. |
+| Initial API data | Nuxt API routes load seeded data from Turso. |
 | Loading and error states | Skeletons, alerts, retry actions, empty states, and mutation progress indicators. |
 | State management | Pinia task and authentication stores. |
 | Tailwind CSS | Tailwind CSS v4 and Nuxt UI components with a custom theme. |
@@ -31,7 +32,7 @@ TaskFlow is a full-stack task management mini app built for the Vue.js technical
 | Routing | Nuxt file-based Vue Router pages for dashboard, creation, detail/edit, login, and registration. |
 | Bonus: TypeScript | Strict TypeScript across the client, shared types, API, database, scripts, and tests. |
 | Bonus: Nuxt | Nuxt 4 full-stack application with SSR and Nitro API routes. |
-| Bonus: Vitest | 17 unit/repository tests across six test files. |
+| Bonus: Vitest | 25 unit/repository tests across seven test files. |
 
 ## Stack
 
@@ -40,7 +41,7 @@ TaskFlow is a full-stack task management mini app built for the Vue.js technical
 - Pinia
 - Tailwind CSS 4 and Nuxt UI
 - VeeValidate
-- libSQL / Turso
+- Turso database
 - Vitest and Happy DOM
 - ESLint
 

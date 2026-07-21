@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
     return task
   }
 
-  const payload = await readTaskPayload(event)
+  const payload = await readTaskPayload(event, { existingDueDate: existingTask.dueDate })
   await validateTaskAssignee(user.id, payload.assigneeId)
   const task = await updateTask(user.id, id, payload)
 

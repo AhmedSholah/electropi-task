@@ -5,6 +5,7 @@ import type { Task, TaskPayload } from '#shared/types/task'
 
 const route = useRoute()
 const taskStore = useTaskStore()
+const toast = useToast()
 const { loading } = storeToRefs(taskStore)
 const task = ref<Task | null>(null)
 const loadError = ref('')
@@ -46,7 +47,13 @@ async function handleUpdate(payload: TaskPayload) {
       ? { status: payload.status }
       : payload
     task.value = await taskStore.updateTask(taskId.value, updatePayload)
-    const navigationResult = await navigateTo(`/?updated=${taskId.value}`)
+    toast.add({
+      title: 'Task updated',
+      description: 'Your changes were saved successfully.',
+      color: 'success',
+      icon: 'i-lucide-circle-check',
+    })
+    const navigationResult = await navigateTo('/')
 
     if (navigationResult === false || isNavigationFailure(navigationResult)) {
       updating.value = false
@@ -63,7 +70,14 @@ async function handleDelete() {
   deleting.value = true
 
   try {
+    const deletedTaskTitle = task.value?.title
     await taskStore.deleteTask(taskId.value)
+    toast.add({
+      title: 'Task deleted',
+      description: deletedTaskTitle ? `“${deletedTaskTitle}” was deleted successfully.` : 'The task was deleted successfully.',
+      color: 'success',
+      icon: 'i-lucide-circle-check',
+    })
     const navigationResult = await navigateTo('/')
 
     if (navigationResult === false || isNavigationFailure(navigationResult)) {
@@ -137,6 +151,7 @@ function openDeleteDialog() {
         :assignable-users="assignableUsers"
         :assignee-error="assigneeError"
         :status-only="task.access === 'assignee'"
+        :allow-navigation="updating || deleting"
         @submit="handleUpdate"
         @cancel="navigateTo('/')"
       >

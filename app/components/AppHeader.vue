@@ -44,6 +44,11 @@ const accountItems = computed(() => [
   ],
   [
     {
+      label: 'Replay welcome tour',
+      icon: 'i-lucide-sparkles',
+      onSelect: () => navigateTo({ path: '/', query: { onboarding: '1' } }),
+    },
+    {
       label: loggingOut.value ? 'Signing out…' : 'Sign out',
       icon: 'i-lucide-log-out',
       color: 'error' as const,

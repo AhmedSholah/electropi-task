@@ -20,6 +20,11 @@
   body {
     @apply min-h-screen bg-slate-50 font-sans text-slate-900 antialiased;
   }
+
+  html.onboarding-tour-scroll-locked,
+  html.onboarding-tour-scroll-locked body {
+    overflow: hidden;
+  }
 }
 
 @layer utilities {

@@ -2,10 +2,16 @@
 import { DateFormatter, getLocalTimeZone, parseDate } from '@internationalized/date'
 import type { DateValue } from '@internationalized/date'
 import { useForm } from 'vee-validate'
+import { onBeforeRouteLeave } from 'vue-router'
 import type { AuthUser } from '#shared/types/auth'
 import type { TaskPayload } from '#shared/types/task'
 import { TASK_STATUSES, taskStatusLabels } from '#shared/types/task'
 import { getMinimumDueDate, validateTask } from '#shared/utils/taskValidation'
+import {
+  ONBOARDING_FIRST_ASSIGNEE,
+  ONBOARDING_TASK_FIELD_EVENT,
+  type OnboardingTaskFieldDetail,
+} from '~/utils/onboardingTour'
 
 const props = withDefaults(defineProps<{
   initialValues?: Partial<TaskPayload>
@@ -15,6 +21,7 @@ const props = withDefaults(defineProps<{
   assignableUsers?: AuthUser[]
   assigneeError?: string
   statusOnly?: boolean
+  allowNavigation?: boolean
 }>(), {
   initialValues: () => ({}),
   submitLabel: 'Save task',
@@ -23,6 +30,7 @@ const props = withDefaults(defineProps<{
   assignableUsers: () => [],
   assigneeError: '',
   statusOnly: false,
+  allowNavigation: false,
 })
 
 const emit = defineEmits<{
@@ -62,6 +70,14 @@ function getInitialValues(values: Partial<TaskPayload>): TaskPayload {
   }
 }
 
+function taskValuesMatch(left: TaskPayload, right: TaskPayload) {
+  return left.title === right.title
+    && left.description === right.description
+    && left.status === right.status
+    && left.dueDate === right.dueDate
+    && left.assigneeId === right.assigneeId
+}
+
 const validSeed: TaskPayload = {
   title: 'Valid task',
   description: '',
@@ -73,7 +89,11 @@ const validSeed: TaskPayload = {
 function fieldRule(field: keyof TaskPayload) {
   return (value: unknown) => {
     const candidate = { ...validSeed, [field]: value } as TaskPayload
-    return validateTask(candidate).errors[field] ?? true
+    const validationOptions = field === 'dueDate'
+      ? { existingDueDate: props.initialValues.dueDate }
+      : undefined
+
+    return validateTask(candidate, validationOptions).errors[field] ?? true
   }
 }
 
@@ -82,6 +102,7 @@ const {
   errors,
   handleSubmit,
   resetForm,
+  values,
 } = useForm<TaskPayload>({
   initialValues: getInitialValues(props.initialValues),
   validationSchema: {
@@ -120,6 +141,10 @@ const selectedDueDate = computed(() => {
 const dueDateLabel = computed(() => selectedDueDate.value
   ? dateFormatter.format(selectedDueDate.value.toDate(timeZone))
   : 'Select a due date')
+const savedValues = ref(getInitialValues(props.initialValues))
+const hasUnsavedChanges = computed(() => !props.allowNavigation && !taskValuesMatch(values, savedValues.value))
+const showUnsavedChangesDialog = ref(false)
+let resolvePendingNavigation: ((shouldLeave: boolean) => void) | undefined
 
 function selectDueDate(value: unknown) {
   if (!value || typeof value !== 'object' || Array.isArray(value) || 'start' in value) {
@@ -131,8 +156,70 @@ function selectDueDate(value: unknown) {
 }
 
 watch(() => props.initialValues, (values) => {
-  resetForm({ values: getInitialValues(values) })
+  const nextValues = getInitialValues(values)
+  savedValues.value = nextValues
+  resetForm({ values: nextValues })
 }, { deep: true })
+
+function handleBeforeUnload(event: BeforeUnloadEvent) {
+  if (!hasUnsavedChanges.value) {
+    return
+  }
+
+  event.preventDefault()
+  event.returnValue = ''
+}
+
+function handleOnboardingTaskField(event: Event) {
+  const { field, value } = (event as CustomEvent<OnboardingTaskFieldDetail>).detail
+
+  if (field === 'title') {
+    title.value = value ?? ''
+  }
+  else if (field === 'description') {
+    description.value = value ?? ''
+  }
+  else if (field === 'status' && TASK_STATUSES.includes(value as TaskPayload['status'])) {
+    status.value = value as TaskPayload['status']
+  }
+  else if (field === 'dueDate') {
+    dueDate.value = value ?? ''
+  }
+  else if (field === 'assigneeId') {
+    assigneeId.value = value === ONBOARDING_FIRST_ASSIGNEE
+      ? props.assignableUsers[0]?.id ?? null
+      : value
+  }
+}
+
+onBeforeRouteLeave(() => {
+  if (!hasUnsavedChanges.value) {
+    return true
+  }
+
+  showUnsavedChangesDialog.value = true
+
+  return new Promise<boolean>((resolve) => {
+    resolvePendingNavigation?.(false)
+    resolvePendingNavigation = resolve
+  })
+})
+
+onMounted(() => {
+  window.addEventListener('beforeunload', handleBeforeUnload)
+  window.addEventListener(ONBOARDING_TASK_FIELD_EVENT, handleOnboardingTaskField)
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', handleBeforeUnload)
+  window.removeEventListener(ONBOARDING_TASK_FIELD_EVENT, handleOnboardingTaskField)
+})
+
+function resolveNavigation(shouldLeave: boolean) {
+  showUnsavedChangesDialog.value = false
+  const resolve = resolvePendingNavigation
+  resolvePendingNavigation = undefined
+  resolve?.(shouldLeave)
+}
 
 const onSubmit = handleSubmit((values) => {
   emit('submit', {
@@ -173,6 +260,7 @@ const onSubmit = handleSubmit((values) => {
           <UInput
             v-model="title"
             v-bind="titleProps"
+            data-tour="task-title"
             name="title"
             placeholder="e.g., Q3 Marketing Report"
             :maxlength="100"
@@ -192,6 +280,7 @@ const onSubmit = handleSubmit((values) => {
           <UTextarea
             v-model="description"
             v-bind="descriptionProps"
+            data-tour="task-description"
             name="description"
             placeholder="Add detailed instructions or context…"
             :maxlength="500"
@@ -208,6 +297,7 @@ const onSubmit = handleSubmit((values) => {
             <USelect
               v-model="status"
               v-bind="statusProps"
+              data-tour="task-status"
               name="status"
               :items="statusItems"
               value-key="value"
@@ -220,6 +310,7 @@ const onSubmit = handleSubmit((values) => {
             <UPopover v-model:open="dueDatePopoverOpen" :content="{ align: 'end' }">
               <UButton
                 v-bind="dueDateProps"
+                data-tour="task-due-date"
                 type="button"
                 name="dueDate"
                 :color="errors.dueDate ? 'error' : 'neutral'"
@@ -260,6 +351,7 @@ const onSubmit = handleSubmit((values) => {
         >
           <USelectMenu
             v-model="selectedAssigneeId"
+            data-tour="task-assignee"
             name="assigneeId"
             :items="assigneeItems"
             value-key="value"
@@ -279,6 +371,7 @@ const onSubmit = handleSubmit((values) => {
         <div class="flex flex-col-reverse gap-3 sm:ml-auto sm:flex-row">
           <UButton type="button" color="neutral" variant="outline" size="lg" :disabled="submitting" label="Cancel" @click="emit('cancel')" />
           <UButton
+            data-tour="task-submit"
             type="submit"
             size="lg"
             icon="i-lucide-check"
@@ -288,5 +381,11 @@ const onSubmit = handleSubmit((values) => {
         </div>
       </div>
     </form>
+
+    <TaskUnsavedChangesDialog
+      :open="showUnsavedChangesDialog"
+      @stay="resolveNavigation(false)"
+      @leave="resolveNavigation(true)"
+    />
   </UCard>
 </template>

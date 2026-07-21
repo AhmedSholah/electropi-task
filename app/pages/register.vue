@@ -43,7 +43,10 @@ const onSubmit = handleSubmit(async (values) => {
       email: values.email,
       password: values.password,
     })
-    const navigationResult = await navigateTo('/')
+    const navigationResult = await navigateTo({
+      path: '/',
+      query: { onboarding: '1' },
+    })
 
     if (navigationResult === false || isNavigationFailure(navigationResult)) {
       submitting.value = false

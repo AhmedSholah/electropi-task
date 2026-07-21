@@ -2,6 +2,10 @@ import { TASK_STATUSES, type TaskPayload } from '../types/task'
 
 export type TaskValidationErrors = Partial<Record<keyof TaskPayload, string>>
 
+export interface TaskValidationOptions {
+  existingDueDate?: string
+}
+
 export function getLocalDateString(date = new Date()) {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -17,7 +21,10 @@ export function getMinimumDueDate(date = new Date()) {
   return getLocalDateString(tomorrow)
 }
 
-export function validateTask(payload: Partial<TaskPayload> | null | undefined) {
+export function validateTask(
+  payload: Partial<TaskPayload> | null | undefined,
+  options: TaskValidationOptions = {},
+) {
   const errors: TaskValidationErrors = {}
   const title = typeof payload?.title === 'string' ? payload.title : ''
   const description = typeof payload?.description === 'string' ? payload.description : ''
@@ -49,7 +56,7 @@ export function validateTask(payload: Partial<TaskPayload> | null | undefined) {
   else if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
     errors.dueDate = 'Enter a valid due date.'
   }
-  else if (dueDate <= getLocalDateString()) {
+  else if (dueDate <= getLocalDateString() && dueDate !== options.existingDueDate) {
     errors.dueDate = 'Due date must be in the future.'
   }
 

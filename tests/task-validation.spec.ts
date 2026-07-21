@@ -36,4 +36,24 @@ describe('task validation', () => {
     expect(getMinimumDueDate()).toBe('2026-07-22')
     expect(validateTask(validTask)).toEqual({ valid: true, errors: {} })
   })
+
+  it('accepts an expired due date when it is unchanged during an edit', () => {
+    const expiredTask = {
+      ...validTask,
+      title: 'Updated release notes',
+      dueDate: '2026-07-20',
+    }
+
+    expect(validateTask(expiredTask, { existingDueDate: '2026-07-20' }))
+      .toEqual({ valid: true, errors: {} })
+  })
+
+  it('rejects changing an existing due date to an expired date', () => {
+    const result = validateTask({
+      ...validTask,
+      dueDate: '2026-07-20',
+    }, { existingDueDate: '2026-07-19' })
+
+    expect(result.errors.dueDate).toBe('Due date must be in the future.')
+  })
 })

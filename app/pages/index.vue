@@ -75,6 +75,7 @@ onBeforeUnmount(() => clearTimeout(searchTimer));
         </p>
       </div>
       <UButton
+        data-tour="create-task"
         icon="i-lucide-plus"
         size="lg"
         label="Create task"
@@ -83,9 +84,9 @@ onBeforeUnmount(() => clearTimeout(searchTimer));
       />
     </header>
 
-    <TaskStats class="mt-7" :stats="stats" />
+    <TaskStats data-tour="task-summary" class="mt-7" :stats="stats" />
 
-    <div class="mt-7">
+    <div data-tour="task-filters" class="mt-7">
       <TaskFilters
         v-model:search-query="searchQuery"
         v-model:status-filter="statusFilter"
@@ -114,7 +115,7 @@ onBeforeUnmount(() => clearTimeout(searchTimer));
       </template>
     </UAlert>
 
-    <section class="mt-5" aria-label="Tasks">
+    <section data-tour="task-cards" class="mt-5" aria-label="Tasks">
       <TaskListSkeleton v-if="loading" />
       <div
         v-else-if="!error && tasks.length"
