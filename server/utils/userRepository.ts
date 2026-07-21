@@ -2,7 +2,6 @@ import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypt
 import type { Row } from '@libsql/client'
 import type { AuthUser } from '#shared/types/auth'
 import { getDatabase } from './database'
-import { createStarterTasks } from './taskRepository'
 
 interface StoredUser extends AuthUser {
   passwordHash: string
@@ -105,8 +104,6 @@ export async function createUser(name: string, email: string, password: string) 
   if (result.rowsAffected === 0) {
     return null
   }
-
-  await createStarterTasks(user.id)
 
   return toPublicUser(user)
 }

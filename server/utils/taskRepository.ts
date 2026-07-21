@@ -19,45 +19,6 @@ const taskSelection = `
   assignee.email AS assignee_email
 `
 
-interface StarterTask {
-  title: string
-  description: string
-  status: TaskStatus
-  daysFromToday: number
-}
-
-const starterTasks: StarterTask[] = [
-  {
-    title: 'Welcome to TaskFlow',
-    description: 'Your workspace is ready. Mark this task complete when you are ready to get started.',
-    status: 'done',
-    daysFromToday: 1,
-  },
-  {
-    title: 'Plan your first project',
-    description: 'Break your next project into clear, manageable tasks.',
-    status: 'in_progress',
-    daysFromToday: 2,
-  },
-  {
-    title: 'Create your first task',
-    description: 'Add a task of your own, set a due date, and track its progress.',
-    status: 'pending',
-    daysFromToday: 3,
-  },
-]
-
-function relativeDate(daysFromToday: number) {
-  const date = new Date()
-  date.setDate(date.getDate() + daysFromToday)
-
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-
-  return `${year}-${month}-${day}`
-}
-
 function rowToTask(row: Row, viewerId: string): Task {
   const ownerId = String(row.owner_id)
   const assigneeId = row.assignee_id === null ? null : String(row.assignee_id)
@@ -191,39 +152,6 @@ export async function createTask(ownerId: string, payload: TaskPayload) {
   })
 
   return (await findTask(ownerId, id))!
-}
-
-export async function createStarterTasks(ownerId: string) {
-  const timestamp = new Date().toISOString()
-  const tasks = starterTasks.map(task => ({
-    id: randomUUID(),
-    title: task.title,
-    description: task.description,
-    status: task.status,
-    dueDate: relativeDate(task.daysFromToday),
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  }))
-
-  await getDatabase().batch(tasks.map(task => ({
-    sql: `
-      INSERT INTO tasks (
-        id, owner_id, title, description, status, due_date, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-    args: [
-      task.id,
-      ownerId,
-      task.title,
-      task.description,
-      task.status,
-      task.dueDate,
-      task.createdAt,
-      task.updatedAt,
-    ],
-  })), 'write')
-
-  return tasks
 }
 
 export async function updateTask(ownerId: string, id: string, payload: TaskPayload) {

@@ -626,15 +626,6 @@ onBeforeUnmount(() => {
               <span>{{ actionError }}</span>
             </div>
 
-            <div v-if="currentStepIndex === 0" class="mt-3 flex items-start gap-2.5 rounded-xl bg-indigo-50 p-3 text-indigo-900 ring-1 ring-inset ring-indigo-100">
-              <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white text-indigo-600 shadow-sm">
-                <Icon name="lucide:wand-sparkles" class="size-3.5" aria-hidden="true" />
-              </span>
-              <p class="text-[11px] leading-4.5">
-                We added three starter tasks so you can explore the workflow immediately.
-              </p>
-            </div>
-
             <div class="mt-4" aria-hidden="true">
               <div class="flex items-center justify-between text-[10px] font-bold text-slate-400">
                 <span>QUICK TOUR</span>

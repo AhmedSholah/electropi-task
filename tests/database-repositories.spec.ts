@@ -47,7 +47,7 @@ describe('persistent repositories', () => {
     expect(await resolveSession(token)).toBeNull()
   })
 
-  it('adds three starter tasks to every new account', async () => {
+  it('creates new accounts without starter tasks', async () => {
     const email = `${randomUUID()}@example.com`
     const user = await createUser('New User', email, 'password123')
     const result = await listTasks(user!.id, {
@@ -58,13 +58,8 @@ describe('persistent repositories', () => {
       pageSize: 10,
     })
 
-    expect(result.items).toHaveLength(3)
-    expect(result.items.map(task => task.title)).toEqual([
-      'Welcome to TaskFlow',
-      'Plan your first project',
-      'Create your first task',
-    ])
-    expect(result.stats).toEqual({ total: 3, pending: 1, inProgress: 1, done: 1 })
+    expect(result.items).toHaveLength(0)
+    expect(result.stats).toEqual({ total: 0, pending: 0, inProgress: 0, done: 0 })
   })
 
   it('creates, updates, reads, and deletes an owned task', async () => {

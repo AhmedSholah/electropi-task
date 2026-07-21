@@ -74,7 +74,7 @@ Before running the database setup, replace the placeholders in `.env` with your 
 - Email: `demo@taskflow.dev`
 - Password: `password123`
 
-You can also register a new account. New accounts receive three starter tasks.
+You can also register a new account.
 
 ## Available commands
 
