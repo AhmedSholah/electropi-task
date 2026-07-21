@@ -14,7 +14,6 @@ describe('database reset', () => {
         '0002_task_assignments.sql',
       ])
       expect(firstReset.usersCreated).toBe(5)
-      expect(firstReset.demoTasksCreated).toBe(6)
 
       await database.execute(`
         INSERT INTO users (id, name, email, password_hash, created_at)
@@ -28,7 +27,7 @@ describe('database reset', () => {
       expect(secondReset.usersCreated).toBe(5)
       expect(users.rows.map(row => String(row.id))).not.toContain('temporary-user')
       expect(users.rows).toHaveLength(5)
-      expect(Number(tasks.rows[0]?.count)).toBe(6)
+      expect(Number(tasks.rows[0]?.count)).toBe(0)
     }
     finally {
       database.close()

@@ -1,13 +1,27 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { migrateDatabase } from '../database/migrate'
 import { seedDatabase } from '../database/seed'
-import { listTasks } from '../server/utils/taskRepository'
+import { createTask, listTasks } from '../server/utils/taskRepository'
 import { DEMO_USER_ID } from '../server/utils/userRepository'
+
+const taskFixtures = [
+  { title: 'Fix Login Bug', status: 'pending', dueDate: '2099-01-01' },
+  { title: 'Update Documentation', status: 'in_progress', dueDate: '2099-01-02' },
+  { title: 'Client Onboarding', status: 'pending', dueDate: '2099-01-03' },
+  { title: 'Archive Sprint Board', status: 'done', dueDate: '2099-01-04' },
+  { title: 'Review Analytics', status: 'in_progress', dueDate: '2099-01-05' },
+  { title: 'Publish Release Notes', status: 'done', dueDate: '2099-01-06' },
+] as const
 
 describe('task repository listing', () => {
   beforeAll(async () => {
     await migrateDatabase()
     await seedDatabase()
+    await Promise.all(taskFixtures.map(task => createTask(DEMO_USER_ID, {
+      ...task,
+      description: `${task.title} test fixture`,
+      assigneeId: null,
+    })))
   })
 
   it('searches and filters case-insensitively before paginating', async () => {

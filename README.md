@@ -10,11 +10,11 @@ TaskFlow is a full-stack task management mini app built for the Vue.js technical
 - Search tasks by title, filter by status, sort results, and paginate without stale requests overwriting newer searches.
 - Display skeleton loading states, empty states, retryable API errors, submit progress, and delete progress.
 - Open a dedicated task detail/edit route and a separate create-task route.
-- Register, sign in, sign out, and keep authenticated sessions in secure HTTP-only cookies.
-- Welcome newly registered users with a responsive, keyboard-accessible tour that guides them through creating and saving a real task.
+- Register, sign in, sign out, and keep authenticated sessions in HTTP-only, `SameSite=Lax` cookies that are marked `Secure` in production.
+- Welcome newly registered users with a responsive, keyboard-accessible tour that guides them through creating, saving, reopening, and editing a real task.
 - Assign tasks to another user; assignees can view the task and update only its status.
 - Persist users, sessions, tasks, and assignments in Turso.
-- Seed a ready-to-use demo account and sample data.
+- Seed a ready-to-use empty demo account and assignment users.
 
 ## Technical-task coverage
 
@@ -50,7 +50,7 @@ TaskFlow is a full-stack task management mini app built for the Vue.js technical
 ### Prerequisites
 
 - Node.js 22.19.x, 24.11.x, or 26+
-- pnpm (enable it with `corepack enable` if needed)
+- pnpm
 - A [Turso](https://turso.tech/) database and authentication token
 
 ### Install and run
@@ -67,7 +67,7 @@ pnpm dev
 
 Open `http://localhost:3000`.
 
-Before running the database setup, replace the placeholders in `.env` with your Turso database URL and authentication token. `pnpm db:setup` applies the migrations and adds the demo data to that database.
+Before running the database setup, replace the placeholders in `.env` with your Turso database URL and authentication token. `pnpm db:setup` applies the migrations and adds the demo and assignment users to that database.
 
 ### Demo account
 
@@ -82,6 +82,7 @@ You can also register a new account.
 | --- | --- |
 | `pnpm dev` | Start the development server. |
 | `pnpm build` | Create a production build. |
+| `pnpm generate` | Generate prerendered static output. This is not a deployable build for this app because authentication and API routes require the Nitro server. |
 | `pnpm preview` | Preview the production build. |
 | `pnpm test` | Run the Vitest suite once. |
 | `pnpm test:watch` | Run Vitest in watch mode. |
@@ -89,13 +90,14 @@ You can also register a new account.
 | `pnpm lint` | Run ESLint. |
 | `pnpm db:setup` | Apply migrations and seed missing demo data. |
 | `pnpm db:migrate` | Apply pending database migrations. |
-| `pnpm db:seed` | Seed missing demo users and tasks. |
+| `pnpm db:seed` | Seed missing demo and assignment users. |
 | `pnpm db:reset` | Drop app tables, rerun migrations, and reseed data. This deletes existing app data. |
 
 ## Project structure
 
 ```text
 app/
+  assets/           Tailwind entry point and custom theme
   components/       Reusable UI and task components
   layouts/          Authenticated and public layouts
   middleware/       Authentication route guard
@@ -104,6 +106,8 @@ app/
   utils/            Client formatting/error helpers
 database/
   migrations/       Versioned SQL schema changes
+  *.ts              Migration, seed, and reset implementations
+scripts/             Database command entry points
 server/
   api/              Auth, user, and task endpoints
   utils/            Authentication and repositories
@@ -115,7 +119,7 @@ tests/               Vitest unit and repository tests
 
 ## Production
 
-Set `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` in the deployment environment, run `pnpm db:setup` against that database once, then build with:
+Set `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` in the deployment environment. Run `pnpm db:setup` before the first deployment and whenever new migrations are added; the command is idempotent and seeds only missing demo and assignment users. Then build with:
 
 ```bash
 pnpm build

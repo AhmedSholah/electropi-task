@@ -8,10 +8,6 @@ if (result.usersCreated > 0) {
   created.push(`${result.usersCreated} user${result.usersCreated === 1 ? '' : 's'}`)
 }
 
-if (result.demoTasksCreated > 0) {
-  created.push(`${result.demoTasksCreated} demo tasks`)
-}
-
 console.log(created.length > 0
   ? `Created ${created.join(' and ')}.`
   : 'Seed data already exists; nothing was added.')

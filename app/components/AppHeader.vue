@@ -72,20 +72,22 @@ const accountItems = computed(() => [
           icon="i-lucide-layout-dashboard"
           variant="ghost"
           :color="route.path === '/' ? 'primary' : 'neutral'"
-          class="relative h-full rounded-none px-4"
-        >
-          <span v-if="route.path === '/'" class="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-brand-600" />
-        </UButton>
+          :class="[
+            'relative h-full rounded-none px-4',
+            route.path === '/' && 'after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:bg-brand-600',
+          ]"
+        />
         <UButton
           to="/tasks/new"
           label="Create Task"
           icon="i-lucide-circle-plus"
           variant="ghost"
           :color="route.path === '/tasks/new' ? 'primary' : 'neutral'"
-          class="relative h-full rounded-none px-4"
-        >
-          <span v-if="route.path === '/tasks/new'" class="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-brand-600" />
-        </UButton>
+          :class="[
+            'relative h-full rounded-none px-4',
+            route.path === '/tasks/new' && 'after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:bg-brand-600',
+          ]"
+        />
       </nav>
 
       <UDropdownMenu :items="accountItems" :content="{ align: 'end' }" class="ml-auto sm:ml-6">
