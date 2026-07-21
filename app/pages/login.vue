@@ -2,6 +2,7 @@
 import { useForm } from "vee-validate";
 import { isNavigationFailure } from "vue-router";
 import type { LoginPayload } from "#shared/types/auth";
+import { DEMO_ACCOUNT_EMAIL, getLoginRedirect } from "~/utils/loginRedirect";
 
 definePageMeta({ layout: "auth" });
 useSeoMeta({ title: "Sign in · TaskFlow" });
@@ -30,7 +31,7 @@ onBeforeUnmount(() => authStore.clearError());
 function useDemoAccount() {
   resetForm({
     values: {
-      email: "demo@taskflow.dev",
+      email: DEMO_ACCOUNT_EMAIL,
       password: "password123",
     },
   });
@@ -41,14 +42,10 @@ const onSubmit = handleSubmit(async (values) => {
   submitting.value = true;
 
   try {
-    await authStore.login(values);
-    const requestedRedirect =
-      typeof route.query.redirect === "string" ? route.query.redirect : "/";
-    const safeRedirect =
-      requestedRedirect.startsWith("/") && !requestedRedirect.startsWith("//")
-        ? requestedRedirect
-        : "/";
-    const navigationResult = await navigateTo(safeRedirect);
+    const user = await authStore.login(values);
+    const navigationResult = await navigateTo(
+      getLoginRedirect(user.email, route.query.redirect),
+    );
 
     if (navigationResult === false || isNavigationFailure(navigationResult)) {
       submitting.value = false;
