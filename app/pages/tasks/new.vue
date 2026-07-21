@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isNavigationFailure } from 'vue-router'
 import type { TaskPayload } from '#shared/types/task'
 
 useSeoMeta({ title: 'Create Task · TaskFlow' })
@@ -20,13 +21,15 @@ async function handleCreate(payload: TaskPayload) {
       color: 'success',
       icon: 'i-lucide-circle-check',
     })
-    await navigateTo('/')
+    const navigationResult = await navigateTo('/')
+
+    if (navigationResult === false || isNavigationFailure(navigationResult)) {
+      submitting.value = false
+    }
   }
   catch (caughtError) {
-    submitError.value = getErrorMessage(caughtError, 'Unable to create this task. Please try again.')
-  }
-  finally {
     submitting.value = false
+    submitError.value = getErrorMessage(caughtError, 'Unable to create this task. Please try again.')
   }
 }
 </script>

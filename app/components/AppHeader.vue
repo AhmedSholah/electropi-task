@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { isNavigationFailure } from 'vue-router'
+
 const authStore = useAuthStore()
 const taskStore = useTaskStore()
 const route = useRoute()
@@ -17,10 +19,15 @@ async function handleLogout() {
   try {
     await authStore.logout()
     taskStore.reset()
-    await navigateTo('/login')
+    const navigationResult = await navigateTo('/login')
+
+    if (navigationResult === false || isNavigationFailure(navigationResult)) {
+      loggingOut.value = false
+    }
   }
-  finally {
+  catch (error) {
     loggingOut.value = false
+    throw error
   }
 }
 

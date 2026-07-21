@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useForm } from 'vee-validate'
+import { isNavigationFailure } from 'vue-router'
 
 interface RegisterForm {
   name: string
@@ -42,13 +43,15 @@ const onSubmit = handleSubmit(async (values) => {
       email: values.email,
       password: values.password,
     })
-    await navigateTo('/')
+    const navigationResult = await navigateTo('/')
+
+    if (navigationResult === false || isNavigationFailure(navigationResult)) {
+      submitting.value = false
+    }
   }
   catch {
-    // The store exposes a user-friendly API error above the form.
-  }
-  finally {
     submitting.value = false
+    // The store exposes a user-friendly API error above the form.
   }
 })
 </script>

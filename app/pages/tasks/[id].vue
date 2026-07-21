@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isNavigationFailure } from 'vue-router'
 import type { Task, TaskPayload } from '#shared/types/task'
 
 const route = useRoute()
@@ -30,13 +31,15 @@ async function handleUpdate(payload: TaskPayload) {
 
   try {
     task.value = await taskStore.updateTask(taskId.value, payload)
-    await navigateTo(`/?updated=${taskId.value}`)
+    const navigationResult = await navigateTo(`/?updated=${taskId.value}`)
+
+    if (navigationResult === false || isNavigationFailure(navigationResult)) {
+      updating.value = false
+    }
   }
   catch (caughtError) {
-    submitError.value = getErrorMessage(caughtError, 'Unable to update this task. Please try again.')
-  }
-  finally {
     updating.value = false
+    submitError.value = getErrorMessage(caughtError, 'Unable to update this task. Please try again.')
   }
 }
 
@@ -46,13 +49,15 @@ async function handleDelete() {
 
   try {
     await taskStore.deleteTask(taskId.value)
-    await navigateTo('/')
+    const navigationResult = await navigateTo('/')
+
+    if (navigationResult === false || isNavigationFailure(navigationResult)) {
+      deleting.value = false
+    }
   }
   catch (caughtError) {
-    deleteError.value = getErrorMessage(caughtError, 'Unable to delete this task. Please try again.')
-  }
-  finally {
     deleting.value = false
+    deleteError.value = getErrorMessage(caughtError, 'Unable to delete this task. Please try again.')
   }
 }
 
