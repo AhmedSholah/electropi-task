@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Task, TaskListResponse, TaskPayload, TaskSort, TaskStats, TaskStatus } from '#shared/types/task'
+import type { Task, TaskListResponse, TaskPayload, TaskSort, TaskStats, TaskStatus, TaskStatusPayload } from '#shared/types/task'
 import { getErrorMessage } from '../utils/getErrorMessage'
 
 const DEFAULT_PAGE_SIZE = 6
@@ -123,7 +123,7 @@ export const useTaskStore = defineStore('tasks', () => {
     }
   }
 
-  async function updateTask(id: string, payload: TaskPayload) {
+  async function updateTask(id: string, payload: TaskPayload | TaskStatusPayload) {
     saving.value = true
 
     try {

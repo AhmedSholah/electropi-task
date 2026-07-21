@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { isNavigationFailure } from 'vue-router'
+import type { AuthUser } from '#shared/types/auth'
 import type { TaskPayload } from '#shared/types/task'
 
 useSeoMeta({ title: 'Create Task · TaskFlow' })
@@ -8,6 +9,15 @@ const taskStore = useTaskStore()
 const toast = useToast()
 const submitError = ref('')
 const submitting = ref(false)
+const assignableUsers = ref<AuthUser[]>([])
+const assigneeError = ref('')
+
+try {
+  assignableUsers.value = await useRequestFetch()<AuthUser[]>('/api/users')
+}
+catch (caughtError) {
+  assigneeError.value = getErrorMessage(caughtError, 'Unable to load users. You can still create an unassigned task.')
+}
 
 async function handleCreate(payload: TaskPayload) {
   submitError.value = ''
@@ -58,6 +68,8 @@ async function handleCreate(payload: TaskPayload) {
       submit-label="Create task"
       :submitting="submitting"
       :submit-error="submitError"
+      :assignable-users="assignableUsers"
+      :assignee-error="assigneeError"
       @submit="handleCreate"
       @cancel="navigateTo('/')"
     />

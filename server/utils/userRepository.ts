@@ -68,6 +68,24 @@ export async function findUserById(id: string) {
   return result.rows[0] ? toStoredUser(result.rows[0]) : undefined
 }
 
+export async function listAssignableUsers(currentUserId: string): Promise<AuthUser[]> {
+  const result = await getDatabase().execute({
+    sql: `
+      SELECT id, name, email
+      FROM users
+      WHERE id != ?
+      ORDER BY name COLLATE NOCASE, email COLLATE NOCASE
+    `,
+    args: [currentUserId],
+  })
+
+  return result.rows.map(row => ({
+    id: String(row.id),
+    name: String(row.name),
+    email: String(row.email),
+  }))
+}
+
 export async function createUser(name: string, email: string, password: string) {
   const user: StoredUser = {
     id: randomUUID(),

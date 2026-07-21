@@ -22,6 +22,7 @@ export function validateTask(payload: Partial<TaskPayload> | null | undefined) {
   const title = typeof payload?.title === 'string' ? payload.title : ''
   const description = typeof payload?.description === 'string' ? payload.description : ''
   const dueDate = typeof payload?.dueDate === 'string' ? payload.dueDate : ''
+  const assigneeId = payload?.assigneeId
 
   if (!title.trim()) {
     errors.title = 'Task title is required.'
@@ -36,6 +37,10 @@ export function validateTask(payload: Partial<TaskPayload> | null | undefined) {
 
   if (!payload?.status || !TASK_STATUSES.includes(payload.status)) {
     errors.status = 'Choose a valid task status.'
+  }
+
+  if (assigneeId !== null && assigneeId !== undefined && (typeof assigneeId !== 'string' || !assigneeId.trim())) {
+    errors.assigneeId = 'Choose a valid assignee.'
   }
 
   if (!dueDate) {

@@ -116,10 +116,20 @@ const dueLabelColor = computed(() => {
       {{ task.description || "No description provided." }}
     </p>
 
+    <div
+      v-if="task.access === 'assignee' || task.assignee"
+      class="mt-3 flex items-center gap-1.5 text-xs font-semibold text-slate-500"
+    >
+      <Icon name="lucide:user-round-check" class="size-3.5 shrink-0 text-brand-500" aria-hidden="true" />
+      <span class="truncate">
+        {{ task.access === 'assignee' ? `Assigned by ${task.owner.name}` : `Assigned to ${task.assignee?.name}` }}
+      </span>
+    </div>
+
     <ULink
       :to="`/tasks/${task.id}`"
       class="mt-auto flex items-center justify-between border-t border-slate-100 pt-3.5 text-sm font-semibold transition"
-      :aria-label="`View and edit ${task.title}`"
+      :aria-label="task.access === 'owner' ? `View and edit ${task.title}` : `Update status for ${task.title}`"
     >
       <span
         class="inline-flex min-w-0 items-center gap-1.5"
@@ -141,7 +151,7 @@ const dueLabelColor = computed(() => {
       <span
         class="ml-3 inline-flex shrink-0 items-center gap-1.5 text-slate-600 transition group-hover:text-brand-600"
       >
-        View &amp; edit
+        {{ task.access === 'owner' ? 'View & edit' : 'Update status' }}
         <Icon
           name="lucide:arrow-right"
           class="size-4 transition group-hover:translate-x-0.5"

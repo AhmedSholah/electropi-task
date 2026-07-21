@@ -17,6 +17,7 @@ describe('task validation', () => {
     description: 'Summarize the next release.',
     status: 'pending',
     dueDate: '2026-07-22',
+    assigneeId: null,
   }
 
   it('rejects a blank title and a due date that is not in the future', () => {

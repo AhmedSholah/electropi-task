@@ -1,8 +1,10 @@
-export const TASK_STATUSES = ['pending', 'in_progress', 'done'] as const
-export const TASK_SORTS = ['active_due_asc', 'due_asc', 'due_desc', 'newest'] as const
+import type { AuthUser } from './auth'
 
+export const TASK_STATUSES = ['pending', 'in_progress', 'done'] as const
 export type TaskStatus = (typeof TASK_STATUSES)[number]
-export type TaskSort = (typeof TASK_SORTS)[number]
+export type TaskSort = 'active_due_asc' | 'due_asc' | 'due_desc' | 'newest'
+export const TASK_SORTS = ['active_due_asc', 'due_asc', 'due_desc', 'newest'] as const satisfies readonly TaskSort[]
+export type TaskAccess = 'owner' | 'assignee'
 
 export interface Task {
   id: string
@@ -12,6 +14,10 @@ export interface Task {
   dueDate: string
   createdAt: string
   updatedAt: string
+  owner: AuthUser
+  assignee: AuthUser | null
+  assigneeId: string | null
+  access: TaskAccess
 }
 
 export interface TaskPayload {
@@ -19,6 +25,11 @@ export interface TaskPayload {
   description: string
   status: TaskStatus
   dueDate: string
+  assigneeId: string | null
+}
+
+export interface TaskStatusPayload {
+  status: TaskStatus
 }
 
 export interface TaskStats {

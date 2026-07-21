@@ -2,6 +2,7 @@
 import { DateFormatter, getLocalTimeZone, parseDate } from '@internationalized/date'
 import type { DateValue } from '@internationalized/date'
 import { useForm } from 'vee-validate'
+import type { AuthUser } from '#shared/types/auth'
 import type { TaskPayload } from '#shared/types/task'
 import { TASK_STATUSES, taskStatusLabels } from '#shared/types/task'
 import { getMinimumDueDate, validateTask } from '#shared/utils/taskValidation'
@@ -11,11 +12,17 @@ const props = withDefaults(defineProps<{
   submitLabel?: string
   submitting?: boolean
   submitError?: string
+  assignableUsers?: AuthUser[]
+  assigneeError?: string
+  statusOnly?: boolean
 }>(), {
   initialValues: () => ({}),
   submitLabel: 'Save task',
   submitting: false,
   submitError: '',
+  assignableUsers: () => [],
+  assigneeError: '',
+  statusOnly: false,
 })
 
 const emit = defineEmits<{
@@ -27,10 +34,23 @@ const minimumDueDate = getMinimumDueDate()
 const minimumCalendarDate = parseDate(minimumDueDate)
 const dateFormatter = new DateFormatter('en-US', { dateStyle: 'medium' })
 const timeZone = getLocalTimeZone()
+const UNASSIGNED_ID = '__unassigned__'
 const statusItems = TASK_STATUSES.map(status => ({
   label: taskStatusLabels[status],
   value: status,
 }))
+const assigneeItems = computed(() => [
+  {
+    label: 'Unassigned',
+    description: 'No user assigned',
+    value: UNASSIGNED_ID,
+  },
+  ...props.assignableUsers.map(user => ({
+    label: user.name,
+    description: user.email,
+    value: user.id,
+  })),
+])
 
 function getInitialValues(values: Partial<TaskPayload>): TaskPayload {
   return {
@@ -38,6 +58,7 @@ function getInitialValues(values: Partial<TaskPayload>): TaskPayload {
     description: values.description ?? '',
     status: values.status ?? 'pending',
     dueDate: values.dueDate ?? '',
+    assigneeId: values.assigneeId ?? null,
   }
 }
 
@@ -46,6 +67,7 @@ const validSeed: TaskPayload = {
   description: '',
   status: 'pending',
   dueDate: minimumDueDate,
+  assigneeId: null,
 }
 
 function fieldRule(field: keyof TaskPayload) {
@@ -63,10 +85,10 @@ const {
 } = useForm<TaskPayload>({
   initialValues: getInitialValues(props.initialValues),
   validationSchema: {
-    title: fieldRule('title'),
-    description: fieldRule('description'),
+    title: props.statusOnly ? () => true : fieldRule('title'),
+    description: props.statusOnly ? () => true : fieldRule('description'),
     status: fieldRule('status'),
-    dueDate: fieldRule('dueDate'),
+    dueDate: props.statusOnly ? () => true : fieldRule('dueDate'),
   },
 })
 
@@ -75,6 +97,13 @@ const [title, titleProps] = defineField('title', fieldOptions)
 const [description, descriptionProps] = defineField('description', fieldOptions)
 const [status, statusProps] = defineField('status', fieldOptions)
 const [dueDate, dueDateProps] = defineField('dueDate', fieldOptions)
+const [assigneeId] = defineField('assigneeId', fieldOptions)
+const selectedAssigneeId = computed({
+  get: () => assigneeId.value ?? UNASSIGNED_ID,
+  set: (value: string) => {
+    assigneeId.value = value === UNASSIGNED_ID ? null : value
+  },
+})
 const dueDatePopoverOpen = ref(false)
 const selectedDueDate = computed(() => {
   if (!dueDate.value) {
@@ -111,6 +140,7 @@ const onSubmit = handleSubmit((values) => {
     description: values.description.trim(),
     status: values.status,
     dueDate: values.dueDate,
+    assigneeId: values.assigneeId,
   })
 })
 </script>
@@ -128,6 +158,16 @@ const onSubmit = handleSubmit((values) => {
         class="mb-6"
       />
 
+      <UAlert
+        v-if="statusOnly"
+        color="primary"
+        variant="subtle"
+        icon="i-lucide-user-check"
+        title="This task was assigned to you"
+        description="You can review its details and change its status. Only the owner can edit other information or delete it."
+        class="mb-6"
+      />
+
       <div class="space-y-6">
         <UFormField name="title" label="Task title" required :error="errors.title">
           <UInput
@@ -139,6 +179,7 @@ const onSubmit = handleSubmit((values) => {
             size="lg"
             class="w-full"
             leading-icon="i-lucide-list-todo"
+            :disabled="statusOnly"
           />
         </UFormField>
 
@@ -158,6 +199,7 @@ const onSubmit = handleSubmit((values) => {
             autoresize
             size="lg"
             class="w-full"
+            :disabled="statusOnly"
           />
         </UFormField>
 
@@ -190,6 +232,7 @@ const onSubmit = handleSubmit((values) => {
                 :aria-invalid="Boolean(errors.dueDate)"
                 class="justify-start font-normal"
                 :class="dueDate ? 'text-slate-900' : 'text-slate-500'"
+                :disabled="statusOnly"
               >
                 <span class="flex-1 text-left">{{ dueDateLabel }}</span>
               </UButton>
@@ -207,6 +250,26 @@ const onSubmit = handleSubmit((values) => {
             </UPopover>
           </UFormField>
         </div>
+
+        <UFormField
+          v-if="!statusOnly"
+          name="assigneeId"
+          label="Assign to"
+          hint="The assignee can view this task and change only its status."
+          :error="assigneeError || errors.assigneeId"
+        >
+          <USelectMenu
+            v-model="selectedAssigneeId"
+            name="assigneeId"
+            :items="assigneeItems"
+            value-key="value"
+            :filter-fields="['label', 'description']"
+            :search-input="{ placeholder: 'Search users by name or email…' }"
+            size="lg"
+            class="w-full"
+            icon="i-lucide-user-plus"
+          />
+        </UFormField>
       </div>
 
       <div class="mt-8 flex flex-col gap-3 border-t border-default pt-6 sm:flex-row sm:items-center sm:justify-between">

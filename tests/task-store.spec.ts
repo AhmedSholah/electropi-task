@@ -11,6 +11,14 @@ const task: Task = {
   dueDate: '2026-08-02',
   createdAt: '2026-07-20T10:00:00.000Z',
   updatedAt: '2026-07-20T10:00:00.000Z',
+  owner: {
+    id: 'owner-1',
+    name: 'Task Owner',
+    email: 'owner@example.com',
+  },
+  assignee: null,
+  assigneeId: null,
+  access: 'owner',
 }
 
 function taskResponse(items: Task[], page = 1): TaskListResponse {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { isNavigationFailure } from 'vue-router'
+import type { AuthUser } from '#shared/types/auth'
 import type { Task, TaskPayload } from '#shared/types/task'
 
 const route = useRoute()
@@ -12,6 +13,8 @@ const deleteError = ref('')
 const showDeleteDialog = ref(false)
 const updating = ref(false)
 const deleting = ref(false)
+const assignableUsers = ref<AuthUser[]>([])
+const assigneeError = ref('')
 const taskId = computed(() => String(route.params.id))
 
 useSeoMeta({
@@ -20,6 +23,15 @@ useSeoMeta({
 
 try {
   task.value = await taskStore.fetchTask(taskId.value)
+
+  if (task.value.access === 'owner') {
+    try {
+      assignableUsers.value = await useRequestFetch()<AuthUser[]>('/api/users')
+    }
+    catch (caughtError) {
+      assigneeError.value = getErrorMessage(caughtError, 'Unable to load users. The current assignment will be kept unless changed.')
+    }
+  }
 }
 catch (caughtError) {
   loadError.value = getErrorMessage(caughtError, 'Unable to load this task.')
@@ -30,7 +42,10 @@ async function handleUpdate(payload: TaskPayload) {
   updating.value = true
 
   try {
-    task.value = await taskStore.updateTask(taskId.value, payload)
+    const updatePayload = task.value?.access === 'assignee'
+      ? { status: payload.status }
+      : payload
+    task.value = await taskStore.updateTask(taskId.value, updatePayload)
     const navigationResult = await navigateTo(`/?updated=${taskId.value}`)
 
     if (navigationResult === false || isNavigationFailure(navigationResult)) {
@@ -104,7 +119,9 @@ function openDeleteDialog() {
           />
           <div class="min-w-32 flex-1">
             <h1 class="truncate font-bold text-slate-950">{{ task.title }}</h1>
-            <p class="text-xs text-slate-500">Editing task</p>
+            <p class="text-xs text-slate-500">
+              {{ task.access === 'owner' ? 'Editing task' : `Assigned by ${task.owner.name}` }}
+            </p>
           </div>
         </div>
       </UCard>
@@ -114,14 +131,18 @@ function openDeleteDialog() {
       <TaskForm
         class="mt-4 shadow-sm"
         :initial-values="task"
-        submit-label="Update task"
+        :submit-label="task.access === 'owner' ? 'Update task' : 'Update status'"
         :submitting="updating"
         :submit-error="submitError"
+        :assignable-users="assignableUsers"
+        :assignee-error="assigneeError"
+        :status-only="task.access === 'assignee'"
         @submit="handleUpdate"
         @cancel="navigateTo('/')"
       >
         <template #footer-leading>
           <UButton
+            v-if="task.access === 'owner'"
             type="button"
             color="error"
             variant="ghost"
@@ -135,6 +156,7 @@ function openDeleteDialog() {
       </TaskForm>
 
       <TaskDeleteDialog
+        v-if="task.access === 'owner'"
         :task="showDeleteDialog ? task : null"
         :deleting="deleting"
         :error="deleteError"

@@ -11,6 +11,37 @@ interface DemoTask {
   daysFromToday: number
 }
 
+interface SeedUser {
+  id: string
+  name: string
+  email: string
+}
+
+export const MOCK_USERS: SeedUser[] = [
+  {
+    id: 'mock-user-ahmed',
+    name: 'Ahmed Hassan',
+    email: 'ahmed@taskflow.dev',
+  },
+  {
+    id: 'mock-user-karim',
+    name: 'Karim Mostafa',
+    email: 'karim@taskflow.dev',
+  },
+  {
+    id: 'mock-user-omar',
+    name: 'Omar Khaled',
+    email: 'omar@taskflow.dev',
+  },
+  {
+    id: 'mock-user-youssef',
+    name: 'Youssef Ali',
+    email: 'youssef@taskflow.dev',
+  },
+]
+
+const SEED_PASSWORD = 'password123'
+
 const demoTasks: DemoTask[] = [
   {
     title: 'Update Documentation',
@@ -58,15 +89,21 @@ function relativeDate(daysFromToday: number) {
 
 export async function seedDatabase(database: Client = getDatabase()) {
   const timestamp = new Date().toISOString()
-  const statements: InStatement[] = [
+  const seedUsers: SeedUser[] = [
     {
-      sql: `
-        INSERT OR IGNORE INTO users (id, name, email, password_hash, created_at)
-        VALUES (?, ?, ?, ?, ?)
-      `,
-      args: [DEMO_USER_ID, 'Demo User', 'demo@taskflow.dev', hashPassword('password123'), timestamp],
+      id: DEMO_USER_ID,
+      name: 'Demo User',
+      email: 'demo@taskflow.dev',
     },
+    ...MOCK_USERS,
   ]
+  const statements: InStatement[] = seedUsers.map(user => ({
+    sql: `
+      INSERT OR IGNORE INTO users (id, name, email, password_hash, created_at)
+      VALUES (?, ?, ?, ?, ?)
+    `,
+    args: [user.id, user.name, user.email, hashPassword(SEED_PASSWORD), timestamp],
+  }))
 
   const existingTasks = await database.execute({
     sql: 'SELECT COUNT(*) AS count FROM tasks WHERE owner_id = ?',
@@ -94,6 +131,13 @@ export async function seedDatabase(database: Client = getDatabase()) {
     })))
   }
 
-  await database.batch(statements, 'write')
-  return { demoTasksCreated: taskCount === 0 ? demoTasks.length : 0 }
+  const results = await database.batch(statements, 'write')
+  const usersCreated = results
+    .slice(0, seedUsers.length)
+    .reduce((total, result) => total + result.rowsAffected, 0)
+
+  return {
+    usersCreated,
+    demoTasksCreated: taskCount === 0 ? demoTasks.length : 0,
+  }
 }

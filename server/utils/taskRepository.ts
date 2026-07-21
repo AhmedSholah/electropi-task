@@ -3,6 +3,22 @@ import type { Row } from '@libsql/client'
 import type { Task, TaskListResponse, TaskPayload, TaskSort, TaskStatus } from '#shared/types/task'
 import { getDatabase } from './database'
 
+const taskSelection = `
+  t.id,
+  t.title,
+  t.description,
+  t.status,
+  t.due_date,
+  t.created_at,
+  t.updated_at,
+  t.owner_id,
+  owner.name AS owner_name,
+  owner.email AS owner_email,
+  t.assignee_id,
+  assignee.name AS assignee_name,
+  assignee.email AS assignee_email
+`
+
 interface StarterTask {
   title: string
   description: string
@@ -42,7 +58,10 @@ function relativeDate(daysFromToday: number) {
   return `${year}-${month}-${day}`
 }
 
-function rowToTask(row: Row): Task {
+function rowToTask(row: Row, viewerId: string): Task {
+  const ownerId = String(row.owner_id)
+  const assigneeId = row.assignee_id === null ? null : String(row.assignee_id)
+
   return {
     id: String(row.id),
     title: String(row.title),
@@ -51,6 +70,20 @@ function rowToTask(row: Row): Task {
     dueDate: String(row.due_date),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
+    owner: {
+      id: ownerId,
+      name: String(row.owner_name),
+      email: String(row.owner_email),
+    },
+    assignee: assigneeId
+      ? {
+          id: assigneeId,
+          name: String(row.assignee_name),
+          email: String(row.assignee_email),
+        }
+      : null,
+    assigneeId,
+    access: ownerId === viewerId ? 'owner' : 'assignee',
   }
 }
 
@@ -62,18 +95,20 @@ interface ListTasksOptions {
   pageSize: number
 }
 
-export async function listTasks(ownerId: string, options: ListTasksOptions): Promise<TaskListResponse> {
+export async function listTasks(userId: string, options: ListTasksOptions): Promise<TaskListResponse> {
   const result = await getDatabase().execute({
     sql: `
-      SELECT id, title, description, status, due_date, created_at, updated_at
-      FROM tasks
-      WHERE owner_id = ?
+      SELECT ${taskSelection}
+      FROM tasks t
+      JOIN users owner ON owner.id = t.owner_id
+      LEFT JOIN users assignee ON assignee.id = t.assignee_id
+      WHERE t.owner_id = ? OR t.assignee_id = ?
     `,
-    args: [ownerId],
+    args: [userId, userId],
   })
-  const ownerTasks = result.rows.map(rowToTask)
+  const visibleTasks = result.rows.map(row => rowToTask(row, userId))
   const normalizedSearch = options.search.trim().toLowerCase()
-  const filteredTasks = ownerTasks.filter((task) => {
+  const filteredTasks = visibleTasks.filter((task) => {
     const matchesSearch = !normalizedSearch || task.title.toLowerCase().includes(normalizedSearch)
     const matchesStatus = options.status === 'all' || task.status === options.status
 
@@ -108,64 +143,59 @@ export async function listTasks(ownerId: string, options: ListTasksOptions): Pro
     total,
     totalPages,
     stats: {
-      total: ownerTasks.length,
-      pending: ownerTasks.filter(task => task.status === 'pending').length,
-      inProgress: ownerTasks.filter(task => task.status === 'in_progress').length,
-      done: ownerTasks.filter(task => task.status === 'done').length,
+      total: visibleTasks.length,
+      pending: visibleTasks.filter(task => task.status === 'pending').length,
+      inProgress: visibleTasks.filter(task => task.status === 'in_progress').length,
+      done: visibleTasks.filter(task => task.status === 'done').length,
     },
   }
 }
 
-export async function findTask(ownerId: string, id: string) {
+export async function findTask(userId: string, id: string) {
   const result = await getDatabase().execute({
     sql: `
-      SELECT id, title, description, status, due_date, created_at, updated_at
-      FROM tasks
-      WHERE owner_id = ? AND id = ?
+      SELECT ${taskSelection}
+      FROM tasks t
+      JOIN users owner ON owner.id = t.owner_id
+      LEFT JOIN users assignee ON assignee.id = t.assignee_id
+      WHERE t.id = ? AND (t.owner_id = ? OR t.assignee_id = ?)
       LIMIT 1
     `,
-    args: [ownerId, id],
+    args: [id, userId, userId],
   })
 
-  return result.rows[0] ? rowToTask(result.rows[0]) : null
+  return result.rows[0] ? rowToTask(result.rows[0], userId) : null
 }
 
 export async function createTask(ownerId: string, payload: TaskPayload) {
   const timestamp = new Date().toISOString()
-  const task: Task = {
-    id: randomUUID(),
-    title: payload.title.trim(),
-    description: payload.description.trim(),
-    status: payload.status,
-    dueDate: payload.dueDate,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  }
+  const id = randomUUID()
 
   await getDatabase().execute({
     sql: `
       INSERT INTO tasks (
-        id, owner_id, title, description, status, due_date, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        id, owner_id, assignee_id, title, description, status, due_date, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     args: [
-      task.id,
+      id,
       ownerId,
-      task.title,
-      task.description,
-      task.status,
-      task.dueDate,
-      task.createdAt,
-      task.updatedAt,
+      payload.assigneeId,
+      payload.title.trim(),
+      payload.description.trim(),
+      payload.status,
+      payload.dueDate,
+      timestamp,
+      timestamp,
     ],
   })
 
-  return task
+  return (await findTask(ownerId, id))!
 }
 
 export async function createStarterTasks(ownerId: string) {
   const timestamp = new Date().toISOString()
-  const tasks: Task[] = starterTasks.map(task => ({
+  const tasks = starterTasks.map(task => ({
     id: randomUUID(),
     title: task.title,
     description: task.description,
@@ -201,22 +231,35 @@ export async function updateTask(ownerId: string, id: string, payload: TaskPaylo
   const result = await getDatabase().execute({
     sql: `
       UPDATE tasks
-      SET title = ?, description = ?, status = ?, due_date = ?, updated_at = ?
+      SET title = ?, description = ?, status = ?, due_date = ?, assignee_id = ?, updated_at = ?
       WHERE owner_id = ? AND id = ?
-      RETURNING id, title, description, status, due_date, created_at, updated_at
     `,
     args: [
       payload.title.trim(),
       payload.description.trim(),
       payload.status,
       payload.dueDate,
+      payload.assigneeId,
       updatedAt,
       ownerId,
       id,
     ],
   })
 
-  return result.rows[0] ? rowToTask(result.rows[0]) : null
+  return result.rowsAffected > 0 ? await findTask(ownerId, id) : null
+}
+
+export async function updateAssignedTaskStatus(assigneeId: string, id: string, status: TaskStatus) {
+  const result = await getDatabase().execute({
+    sql: `
+      UPDATE tasks
+      SET status = ?, updated_at = ?
+      WHERE assignee_id = ? AND id = ?
+    `,
+    args: [status, new Date().toISOString(), assigneeId, id],
+  })
+
+  return result.rowsAffected > 0 ? await findTask(assigneeId, id) : null
 }
 
 export async function deleteTask(ownerId: string, id: string) {
