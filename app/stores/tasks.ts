@@ -27,6 +27,7 @@ export const useTaskStore = defineStore('tasks', () => {
   const pageSize = ref(DEFAULT_PAGE_SIZE)
   const total = ref(0)
   const totalPages = ref(1)
+  const lastCreatedTaskId = ref<string | null>(null)
   let latestRequest = 0
   let lastLoadedQuery = ''
 
@@ -115,6 +116,7 @@ export const useTaskStore = defineStore('tasks', () => {
         method: 'POST',
         body: payload,
       })
+      lastCreatedTaskId.value = task.id
       loaded.value = false
       return task
     }
@@ -174,6 +176,7 @@ export const useTaskStore = defineStore('tasks', () => {
     error.value = null
     total.value = 0
     totalPages.value = 1
+    lastCreatedTaskId.value = null
     lastLoadedQuery = ''
     clearFilters()
   }
@@ -192,6 +195,7 @@ export const useTaskStore = defineStore('tasks', () => {
     pageSize,
     total,
     totalPages,
+    lastCreatedTaskId,
     stats,
     fetchTasks,
     fetchTask,

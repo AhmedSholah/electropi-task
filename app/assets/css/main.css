@@ -25,6 +25,12 @@
   html.onboarding-tour-scroll-locked body {
     overflow: hidden;
   }
+
+  input[type="search"]::-webkit-search-cancel-button,
+  input[type="search"]::-webkit-search-decoration {
+    appearance: none;
+    -webkit-appearance: none;
+  }
 }
 
 @layer utilities {

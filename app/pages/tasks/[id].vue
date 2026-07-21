@@ -143,6 +143,7 @@ function openDeleteDialog() {
       <TaskTimeMeta :created-at="task.createdAt" :updated-at="task.updatedAt" class="mt-4" />
 
       <TaskForm
+        data-tour="task-form"
         class="mt-4 shadow-sm"
         :initial-values="task"
         :submit-label="task.access === 'owner' ? 'Update task' : 'Update status'"

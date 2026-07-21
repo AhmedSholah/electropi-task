@@ -68,6 +68,7 @@ const dueLabelColor = computed(() => {
 <template>
   <UCard
     as="article"
+    :data-tour-task-id="task.id"
     class="group min-h-64 bg-white transition duration-200 hover:-translate-y-1 hover:border-brand-200 hover:shadow-xl hover:shadow-slate-900/7"
     :class="due.overdue ? 'border-rose-200' : 'border-slate-200'"
     :ui="{ body: 'flex h-full min-h-64 flex-col p-4 sm:p-5' }"
@@ -128,6 +129,7 @@ const dueLabelColor = computed(() => {
 
     <ULink
       :to="`/tasks/${task.id}`"
+      :data-tour-task-edit-id="task.access === 'owner' ? task.id : undefined"
       class="mt-auto flex items-center justify-between border-t border-slate-100 pt-3.5 text-sm font-semibold transition"
       :aria-label="task.access === 'owner' ? `View and edit ${task.title}` : `Update status for ${task.title}`"
     >

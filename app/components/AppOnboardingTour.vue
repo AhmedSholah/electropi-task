@@ -4,6 +4,7 @@ import {
   getOnboardingTaskDueDate,
   getTourPanelPosition,
   getTourTargetScrollTop,
+  ONBOARDING_EDITED_TASK_CONTENT,
   ONBOARDING_FIRST_ASSIGNEE,
   ONBOARDING_TASK_CONTENT,
   ONBOARDING_TASK_FIELD_EVENT,
@@ -26,12 +27,21 @@ interface TourStep {
   description: string
   icon: string
   target?: string
-  action?: 'open-form' | 'fill-title' | 'fill-description' | 'set-status' | 'set-due-date' | 'set-assignee' | 'submit-task'
+  action?: 'open-form' | 'fill-title' | 'fill-description' | 'set-status' | 'set-due-date' | 'set-assignee' | 'submit-task' | 'open-edit' | 'edit-title' | 'submit-edit'
   nextLabel?: string
   busyLabel?: string
 }
 
 const firstName = computed(() => props.userName.trim().split(/\s+/)[0] || 'there')
+const taskStore = useTaskStore()
+const { lastCreatedTaskId } = storeToRefs(taskStore)
+const createdTaskId = ref<string | null>(null)
+const createdTaskCardTarget = computed(() => createdTaskId.value
+  ? `[data-tour-task-id="${createdTaskId.value}"]`
+  : undefined)
+const createdTaskEditTarget = computed(() => createdTaskId.value
+  ? `[data-tour-task-edit-id="${createdTaskId.value}"]`
+  : undefined)
 const steps = computed<TourStep[]>(() => [
   {
     eyebrow: 'Your workspace is ready',
@@ -125,10 +135,47 @@ const steps = computed<TourStep[]>(() => [
   },
   {
     eyebrow: 'Your workflow is live',
-    title: 'Your task is on the dashboard',
-    description: 'This is where you can open task cards, review deadlines, update progress, or edit the work you just created.',
+    title: 'Here’s the task you just created',
+    description: 'This exact card represents the task you just added. Next, we’ll show you where to open it for editing.',
     icon: 'lucide:circle-check-big',
-    target: '[data-tour="task-cards"]',
+    target: createdTaskCardTarget.value,
+  },
+  {
+    eyebrow: 'Open the task details',
+    title: 'Use View & edit to make changes',
+    description: 'This control opens the complete task, where owners can update its title, description, status, due date, and assignment.',
+    icon: 'lucide:external-link',
+    target: createdTaskEditTarget.value,
+    action: 'open-edit',
+    nextLabel: 'Edit this task',
+    busyLabel: 'Opening…',
+  },
+  {
+    eyebrow: 'Plans can change',
+    title: 'Update any task detail',
+    description: 'The same fields are available whenever you reopen a task. We’ll refine the title so the next action is even clearer.',
+    icon: 'lucide:pencil-line',
+    target: '[data-tour="task-title"]',
+    action: 'edit-title',
+    nextLabel: 'Edit title',
+    busyLabel: 'Editing…',
+  },
+  {
+    eyebrow: 'Keep everyone aligned',
+    title: 'Save your changes',
+    description: 'Updating uses the same validation as creation. Save the edited task and we’ll take you back to its card.',
+    icon: 'lucide:save',
+    target: '[data-tour="task-submit"]',
+    action: 'submit-edit',
+    nextLabel: 'Update task',
+    busyLabel: 'Updating…',
+  },
+  {
+    eyebrow: 'Create, edit, done',
+    title: 'This is your updated task',
+    description: 'The card now reflects the title you just edited. You can reopen it any time to update details, progress, assignment, or deadlines.',
+    icon: 'lucide:badge-check',
+    target: createdTaskCardTarget.value,
     nextLabel: 'Finish tour',
   },
 ])
@@ -355,9 +402,40 @@ async function runStepAction() {
         throw new Error('The task form is not ready yet. Please try again.')
       }
 
-      targetRectangle.value = null
+      lastCreatedTaskId.value = null
       form.requestSubmit()
       await waitForPath('/', 12000, 'The task could not be saved. Check the form message and try again.')
+
+      if (!lastCreatedTaskId.value) {
+        throw new Error('The new task could not be identified. Please try this step again.')
+      }
+
+      createdTaskId.value = lastCreatedTaskId.value
+      break
+    }
+    case 'open-edit': {
+      if (!createdTaskId.value) {
+        throw new Error('The new task could not be identified. Please create it again.')
+      }
+
+      const editPath = `/tasks/${encodeURIComponent(createdTaskId.value)}`
+      targetRectangle.value = null
+      await navigateTo(editPath)
+      await waitForPath(editPath, 6000, 'The task editor could not be opened. Please try again.')
+      break
+    }
+    case 'edit-title':
+      await typeTaskField('title', ONBOARDING_EDITED_TASK_CONTENT.title)
+      break
+    case 'submit-edit': {
+      const form = document.querySelector<HTMLFormElement>('[data-tour="task-form"] form')
+
+      if (!form) {
+        throw new Error('The task editor is not ready yet. Please try again.')
+      }
+
+      form.requestSubmit()
+      await waitForPath('/', 12000, 'The task changes could not be saved. Check the form message and try again.')
       break
     }
   }
@@ -583,7 +661,7 @@ onBeforeUnmount(() => {
                 @click="goBack"
               />
               <span v-else class="text-[11px] text-slate-400">
-                {{ currentStepIndex === 0 ? 'Press Esc to skip' : isLastStep ? 'Task created' : 'Guided task setup' }}
+                {{ currentStepIndex === 0 ? 'Press Esc to skip' : isLastStep ? 'Task created and updated' : 'Guided task setup' }}
               </span>
 
               <UButton

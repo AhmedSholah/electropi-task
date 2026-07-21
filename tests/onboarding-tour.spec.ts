@@ -37,7 +37,7 @@ describe('onboarding tour positioning', () => {
     expect(getTourTargetScrollTop(40, 0)).toBe(0)
   })
 
-  it('creates a stable future date for the guided task', () => {
-    expect(getOnboardingTaskDueDate(new Date(2026, 6, 21), 7)).toBe('2026-07-28')
+  it('puts the guided task first under the default nearest-due sort', () => {
+    expect(getOnboardingTaskDueDate(new Date(2026, 6, 21))).toBe('2026-07-22')
   })
 })

@@ -39,7 +39,11 @@ export const ONBOARDING_TASK_CONTENT = {
   status: 'in_progress',
 } as const
 
-export function getOnboardingTaskDueDate(date = new Date(), daysFromNow = 7) {
+export const ONBOARDING_EDITED_TASK_CONTENT = {
+  title: 'Finalize the product launch plan',
+} as const
+
+export function getOnboardingTaskDueDate(date = new Date(), daysFromNow = 1) {
   const dueDate = new Date(date)
   dueDate.setDate(dueDate.getDate() + daysFromNow)
 
