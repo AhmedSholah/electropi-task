@@ -1,13 +1,36 @@
-// https://nuxt.com/docs/api/configuration/nuxt-config
+import tailwindcss from '@tailwindcss/vite'
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
   modules: [
     '@pinia/nuxt',
-    '@nuxtjs/tailwindcss',
     '@nuxt/eslint',
     '@nuxt/icon',
-    '@nuxt/fonts'
-  ]
+    '@nuxt/test-utils/module',
+  ],
+
+  css: ['~/assets/css/main.css'],
+
+  vite: {
+    plugins: [tailwindcss()],
+  },
+
+  typescript: {
+    strict: true,
+    typeCheck: true,
+  },
+
+  app: {
+    head: {
+      title: 'TaskFlow',
+      meta: [
+        {
+          name: 'description',
+          content: 'A focused task management workspace built with Nuxt.',
+        },
+      ],
+    },
+  },
 })
