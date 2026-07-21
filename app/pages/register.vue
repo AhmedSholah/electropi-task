@@ -1,50 +1,50 @@
 <script setup lang="ts">
+import { useForm } from 'vee-validate'
+
+interface RegisterForm {
+  name: string
+  email: string
+  password: string
+  confirmPassword: string
+}
+
 definePageMeta({ layout: 'auth' })
 useSeoMeta({ title: 'Create account · TaskFlow' })
 
 const authStore = useAuthStore()
 const { loading, error } = storeToRefs(authStore)
-const form = reactive({
-  name: '',
-  email: '',
-  password: '',
-  confirmPassword: '',
+
+const { defineField, errors, handleSubmit } = useForm<RegisterForm>({
+  initialValues: { name: '', email: '', password: '', confirmPassword: '' },
+  validationSchema: {
+    name: (value: unknown) => String(value ?? '').trim().length >= 2 || 'Name must be at least 2 characters.',
+    email: (value: unknown) => /^\S+@\S+\.\S+$/.test(String(value ?? '').trim()) || 'Enter a valid email address.',
+    password: (value: unknown) => String(value ?? '').length >= 8 || 'Use at least 8 characters.',
+    confirmPassword: (value: unknown, context: { form: Partial<RegisterForm> }) => value === context.form.password || 'Passwords do not match.',
+  },
 })
-const fieldErrors = reactive({
-  name: '',
-  email: '',
-  password: '',
-  confirmPassword: '',
-})
+
+const fieldOptions = { validateOnModelUpdate: false }
+const [name, nameProps] = defineField('name', fieldOptions)
+const [email, emailProps] = defineField('email', fieldOptions)
+const [password, passwordProps] = defineField('password', fieldOptions)
+const [confirmPassword, confirmPasswordProps] = defineField('confirmPassword', fieldOptions)
 
 onBeforeUnmount(() => authStore.clearError())
 
-function validate() {
-  fieldErrors.name = form.name.trim().length >= 2 ? '' : 'Name must be at least 2 characters.'
-  fieldErrors.email = /^\S+@\S+\.\S+$/.test(form.email.trim()) ? '' : 'Enter a valid email address.'
-  fieldErrors.password = form.password.length >= 8 ? '' : 'Use at least 8 characters.'
-  fieldErrors.confirmPassword = form.confirmPassword === form.password ? '' : 'Passwords do not match.'
-
-  return !Object.values(fieldErrors).some(Boolean)
-}
-
-async function handleSubmit() {
-  if (!validate()) {
-    return
-  }
-
+const onSubmit = handleSubmit(async (values) => {
   try {
     await authStore.register({
-      name: form.name,
-      email: form.email,
-      password: form.password,
+      name: values.name,
+      email: values.email,
+      password: values.password,
     })
     await navigateTo('/')
   }
   catch {
     // The store exposes a user-friendly API error above the form.
   }
-}
+})
 </script>
 
 <template>
@@ -55,60 +55,47 @@ async function handleSubmit() {
       <p class="mt-2 text-sm text-slate-400">Set up a private workspace for your tasks.</p>
     </div>
 
-    <form class="rounded-2xl border border-white/10 bg-white p-6 shadow-2xl shadow-black/30 sm:p-8" novalidate @submit.prevent="handleSubmit">
-      <BaseAlert v-if="error" variant="error" class="mb-5">{{ error }}</BaseAlert>
+    <UCard :ui="{ body: 'p-6 sm:p-8' }" class="shadow-2xl shadow-black/30">
+      <form novalidate @submit="onSubmit">
+        <UAlert
+          v-if="error"
+          color="error"
+          variant="subtle"
+          icon="i-lucide-circle-alert"
+          :description="error"
+          class="mb-5"
+        />
 
-      <div class="space-y-4">
-        <BaseInput
-          v-model="form.name"
-          name="name"
-          label="Full name"
-          placeholder="Your name"
-          autocomplete="name"
-          :error="fieldErrors.name"
-          required
-        />
-        <BaseInput
-          v-model="form.email"
-          name="email"
-          label="Email address"
-          type="email"
-          placeholder="you@example.com"
-          autocomplete="email"
-          :error="fieldErrors.email"
-          required
-        />
-        <BaseInput
-          v-model="form.password"
-          name="password"
-          label="Password"
-          type="password"
-          placeholder="At least 8 characters"
-          autocomplete="new-password"
-          :error="fieldErrors.password"
-          required
-        />
-        <BaseInput
-          v-model="form.confirmPassword"
-          name="confirmPassword"
-          label="Confirm password"
-          type="password"
-          placeholder="Repeat your password"
-          autocomplete="new-password"
-          :error="fieldErrors.confirmPassword"
-          required
-        />
-      </div>
+        <div class="space-y-4">
+          <UFormField name="name" label="Full name" required :error="errors.name">
+            <UInput v-model="name" v-bind="nameProps" name="name" placeholder="Your name" autocomplete="name" leading-icon="i-lucide-user" size="lg" class="w-full" />
+          </UFormField>
+          <UFormField name="email" label="Email address" required :error="errors.email">
+            <UInput v-model="email" v-bind="emailProps" name="email" type="email" placeholder="you@example.com" autocomplete="email" leading-icon="i-lucide-mail" size="lg" class="w-full" />
+          </UFormField>
+          <UFormField name="password" label="Password" required :error="errors.password">
+            <UInput v-model="password" v-bind="passwordProps" name="password" type="password" placeholder="At least 8 characters" autocomplete="new-password" leading-icon="i-lucide-lock-keyhole" size="lg" class="w-full" />
+          </UFormField>
+          <UFormField name="confirmPassword" label="Confirm password" required :error="errors.confirmPassword">
+            <UInput v-model="confirmPassword" v-bind="confirmPasswordProps" name="confirmPassword" type="password" placeholder="Repeat your password" autocomplete="new-password" leading-icon="i-lucide-shield-check" size="lg" class="w-full" />
+          </UFormField>
+        </div>
 
-      <BaseButton type="submit" block :loading="loading" class="mt-6">
-        {{ loading ? 'Creating account…' : 'Create account' }}
-        <Icon v-if="!loading" name="lucide:arrow-right" class="size-4" />
-      </BaseButton>
+        <UButton
+          type="submit"
+          block
+          size="lg"
+          trailing-icon="i-lucide-arrow-right"
+          :loading="loading"
+          :label="loading ? 'Creating account…' : 'Create account'"
+          class="mt-6"
+        />
 
-      <p class="mt-6 text-center text-sm text-slate-500">
-        Already have an account?
-        <NuxtLink to="/login" class="font-semibold text-brand-600 hover:text-brand-700">Sign in</NuxtLink>
-      </p>
-    </form>
+        <p class="mt-6 text-center text-sm text-muted">
+          Already have an account?
+          <ULink to="/login" class="font-semibold text-primary">Sign in</ULink>
+        </p>
+      </form>
+    </UCard>
   </div>
 </template>

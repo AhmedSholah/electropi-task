@@ -13,52 +13,54 @@ const emit = defineEmits<{
   'update:statusFilter': [value: TaskStatus | 'all']
   'update:sortBy': [value: TaskSort]
 }>()
+
+const statusItems = [
+  { label: 'All statuses', value: 'all' },
+  { label: 'Pending', value: 'pending' },
+  { label: 'In Progress', value: 'in_progress' },
+  { label: 'Done', value: 'done' },
+]
+
+const sortItems = [
+  { label: 'Due date', value: 'due_asc' },
+  { label: 'Latest due', value: 'due_desc' },
+  { label: 'Recently added', value: 'newest' },
+]
 </script>
 
 <template>
-  <div class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-card sm:flex-row sm:items-center">
-    <label class="relative min-w-0 flex-1">
-      <span class="sr-only">Search tasks by title</span>
-      <Icon name="lucide:search" class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-      <input
-        :value="searchQuery"
+  <UCard :ui="{ body: 'p-3' }">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <UInput
+        :model-value="searchQuery"
         type="search"
         placeholder="Search tasks by title…"
-        class="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm transition placeholder:text-slate-400 hover:border-slate-300 focus:bg-white sm:max-w-sm"
-        @input="emit('update:searchQuery', ($event.target as HTMLInputElement).value)"
-      >
-    </label>
+        icon="i-lucide-search"
+        size="lg"
+        class="min-w-0 flex-1 sm:max-w-sm"
+        aria-label="Search tasks by title"
+        @update:model-value="emit('update:searchQuery', String($event ?? ''))"
+      />
 
-    <div class="grid grid-cols-2 gap-2 sm:flex">
-      <label class="relative">
-        <span class="sr-only">Filter by task status</span>
-        <select
-          :value="statusFilter"
-          class="h-10 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-3 pr-9 text-sm font-medium text-slate-700 hover:border-slate-300"
-          @change="emit('update:statusFilter', ($event.target as HTMLSelectElement).value as TaskStatus | 'all')"
-        >
-          <option value="all">All statuses</option>
-          <option value="pending">Pending</option>
-          <option value="in_progress">In Progress</option>
-          <option value="done">Done</option>
-        </select>
-        <Icon name="lucide:chevron-down" class="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-      </label>
-
-      <label class="relative">
-        <span class="sr-only">Sort tasks</span>
-        <Icon name="lucide:arrow-up-down" class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-        <select
-          :value="sortBy"
-          class="h-10 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-9 pr-9 text-sm font-medium text-slate-700 hover:border-slate-300"
-          @change="emit('update:sortBy', ($event.target as HTMLSelectElement).value as TaskSort)"
-        >
-          <option value="due_asc">Due date</option>
-          <option value="due_desc">Latest due</option>
-          <option value="newest">Recently added</option>
-        </select>
-        <Icon name="lucide:chevron-down" class="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-      </label>
+      <div class="grid grid-cols-2 gap-2 sm:flex">
+        <USelect
+          :model-value="statusFilter"
+          :items="statusItems"
+          value-key="value"
+          size="lg"
+          aria-label="Filter by task status"
+          @update:model-value="emit('update:statusFilter', $event as TaskStatus | 'all')"
+        />
+        <USelect
+          :model-value="sortBy"
+          :items="sortItems"
+          value-key="value"
+          icon="i-lucide-arrow-up-down"
+          size="lg"
+          aria-label="Sort tasks"
+          @update:model-value="emit('update:sortBy', $event as TaskSort)"
+        />
+      </div>
     </div>
-  </div>
+  </UCard>
 </template>

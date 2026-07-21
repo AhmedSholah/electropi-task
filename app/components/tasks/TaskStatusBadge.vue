@@ -6,22 +6,13 @@ defineProps<{
   status: TaskStatus
 }>()
 
-const styles: Record<TaskStatus, string> = {
-  pending: 'bg-amber-50 text-amber-700 ring-amber-600/15',
-  in_progress: 'bg-indigo-50 text-indigo-700 ring-indigo-600/15',
-  done: 'bg-emerald-50 text-emerald-700 ring-emerald-600/15',
-}
-
-const dots: Record<TaskStatus, string> = {
-  pending: 'bg-amber-500',
-  in_progress: 'bg-indigo-500',
-  done: 'bg-emerald-500',
+const colors: Record<TaskStatus, 'warning' | 'primary' | 'success'> = {
+  pending: 'warning',
+  in_progress: 'primary',
+  done: 'success',
 }
 </script>
 
 <template>
-  <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset" :class="styles[status]">
-    <span class="size-1.5 rounded-full" :class="dots[status]" />
-    {{ taskStatusLabels[status] }}
-  </span>
+  <UBadge :color="colors[status]" variant="subtle" size="sm" :label="taskStatusLabels[status]" />
 </template>

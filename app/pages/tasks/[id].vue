@@ -49,10 +49,7 @@ async function handleDelete() {
 
 <template>
   <div class="mx-auto max-w-3xl">
-    <NuxtLink to="/" class="inline-flex items-center gap-2 rounded-lg text-sm font-semibold text-slate-500 hover:text-slate-900">
-      <Icon name="lucide:arrow-left" class="size-4" aria-hidden="true" />
-      Back to tasks
-    </NuxtLink>
+    <UButton to="/" color="neutral" variant="link" icon="i-lucide-arrow-left" label="Back to tasks" class="px-0" />
 
     <div v-if="loading && !task" class="mt-6 animate-pulse rounded-2xl border border-slate-200 bg-white p-7">
       <div class="h-4 w-24 rounded bg-slate-100" />
@@ -61,8 +58,8 @@ async function handleDelete() {
     </div>
 
     <div v-else-if="loadError" class="mt-6">
-      <BaseAlert variant="error" title="Task unavailable">{{ loadError }}</BaseAlert>
-      <BaseButton variant="secondary" class="mt-4" @click="navigateTo('/')">Return to dashboard</BaseButton>
+      <UAlert color="error" variant="subtle" icon="i-lucide-circle-alert" title="Task unavailable" :description="loadError" />
+      <UButton color="neutral" variant="outline" label="Return to dashboard" class="mt-4" @click="navigateTo('/')" />
     </div>
 
     <template v-else-if="task">
@@ -75,14 +72,8 @@ async function handleDelete() {
           <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-950">Edit task</h1>
           <p class="mt-2 text-sm text-slate-500">Update the task details or change its progress.</p>
         </div>
-        <BaseButton variant="ghost" class="text-rose-600 hover:bg-rose-50" @click="showDeleteDialog = true">
-          <Icon name="lucide:trash-2" class="size-4" /> Delete
-        </BaseButton>
+        <UButton color="error" variant="ghost" icon="i-lucide-trash-2" label="Delete" @click="showDeleteDialog = true" />
       </header>
-
-      <BaseAlert v-if="route.query.created" variant="success" class="mb-5">
-        Task created successfully. You can continue editing it here.
-      </BaseAlert>
 
       <TaskForm
         :initial-values="task"

@@ -1,34 +1,41 @@
 <script setup lang="ts">
+import { useForm } from 'vee-validate'
+import type { LoginPayload } from '#shared/types/auth'
+
 definePageMeta({ layout: 'auth' })
 useSeoMeta({ title: 'Sign in · TaskFlow' })
 
 const route = useRoute()
 const authStore = useAuthStore()
 const { loading, error } = storeToRefs(authStore)
-const email = ref('')
-const password = ref('')
-const fieldErrors = reactive({ email: '', password: '' })
+
+const { defineField, errors, handleSubmit, resetForm } = useForm<LoginPayload>({
+  initialValues: { email: '', password: '' },
+  validationSchema: {
+    email: (value: unknown) => /^\S+@\S+\.\S+$/.test(String(value ?? '').trim()) || 'Enter a valid email address.',
+    password: (value: unknown) => Boolean(value) || 'Password is required.',
+  },
+})
+
+const fieldOptions = { validateOnModelUpdate: false }
+const [email, emailProps] = defineField('email', fieldOptions)
+const [password, passwordProps] = defineField('password', fieldOptions)
 
 onBeforeUnmount(() => authStore.clearError())
 
 function useDemoAccount() {
-  email.value = 'demo@taskflow.dev'
-  password.value = 'password123'
-  fieldErrors.email = ''
-  fieldErrors.password = ''
+  resetForm({
+    values: {
+      email: 'demo@taskflow.dev',
+      password: 'password123',
+    },
+  })
   authStore.clearError()
 }
 
-async function handleSubmit() {
-  fieldErrors.email = /^\S+@\S+\.\S+$/.test(email.value.trim()) ? '' : 'Enter a valid email address.'
-  fieldErrors.password = password.value ? '' : 'Password is required.'
-
-  if (fieldErrors.email || fieldErrors.password) {
-    return
-  }
-
+const onSubmit = handleSubmit(async (values) => {
   try {
-    await authStore.login({ email: email.value, password: password.value })
+    await authStore.login(values)
     const requestedRedirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
     const safeRedirect = requestedRedirect.startsWith('/') && !requestedRedirect.startsWith('//') ? requestedRedirect : '/'
     await navigateTo(safeRedirect)
@@ -36,7 +43,7 @@ async function handleSubmit() {
   catch {
     // The store exposes a user-friendly API error above the form.
   }
-}
+})
 </script>
 
 <template>
@@ -47,73 +54,80 @@ async function handleSubmit() {
       <p class="mt-2 text-sm text-slate-400">Sign in to continue to your task workspace.</p>
     </div>
 
-    <form class="rounded-2xl border border-white/10 bg-white p-6 shadow-2xl shadow-black/30 sm:p-8" novalidate @submit.prevent="handleSubmit">
-      <BaseAlert v-if="error" variant="error" class="mb-5">{{ error }}</BaseAlert>
+    <UCard :ui="{ body: 'p-6 sm:p-8' }" class="shadow-2xl shadow-black/30">
+      <form novalidate @submit="onSubmit">
+        <UAlert
+          v-if="error"
+          color="error"
+          variant="subtle"
+          icon="i-lucide-circle-alert"
+          :description="error"
+          class="mb-5"
+        />
 
-      <div class="space-y-5">
-        <BaseInput
-          v-model="email"
-          name="email"
-          label="Email address"
-          type="email"
-          placeholder="you@example.com"
-          autocomplete="email"
-          :error="fieldErrors.email"
-          required
-          @blur="fieldErrors.email = /^\S+@\S+\.\S+$/.test(email.trim()) ? '' : 'Enter a valid email address.'"
+        <div class="space-y-5">
+          <UFormField name="email" label="Email address" required :error="errors.email">
+            <UInput
+              v-model="email"
+              v-bind="emailProps"
+              name="email"
+              type="email"
+              placeholder="you@example.com"
+              autocomplete="email"
+              leading-icon="i-lucide-mail"
+              size="lg"
+              class="w-full"
+            />
+          </UFormField>
+
+          <UFormField name="password" label="Password" required :error="errors.password">
+            <UInput
+              v-model="password"
+              v-bind="passwordProps"
+              name="password"
+              type="password"
+              placeholder="Enter your password"
+              autocomplete="current-password"
+              leading-icon="i-lucide-lock-keyhole"
+              size="lg"
+              class="w-full"
+            />
+          </UFormField>
+        </div>
+
+        <UButton
+          type="submit"
+          block
+          size="lg"
+          trailing-icon="i-lucide-arrow-right"
+          :loading="loading"
+          :label="loading ? 'Signing in…' : 'Sign in'"
+          class="mt-6"
+        />
+
+        <USeparator label="Demo access" class="my-6" />
+
+        <UButton
+          type="button"
+          color="primary"
+          variant="soft"
+          block
+          icon="i-lucide-sparkles"
+          class="justify-start text-left"
+          @click="useDemoAccount"
         >
-          <template #leading>
-            <Icon name="lucide:mail" class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-          </template>
-        </BaseInput>
-
-        <BaseInput
-          v-model="password"
-          name="password"
-          label="Password"
-          type="password"
-          placeholder="Enter your password"
-          autocomplete="current-password"
-          :error="fieldErrors.password"
-          required
-          @blur="fieldErrors.password = password ? '' : 'Password is required.'"
-        >
-          <template #leading>
-            <Icon name="lucide:lock-keyhole" class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-          </template>
-        </BaseInput>
-      </div>
-
-      <BaseButton type="submit" block :loading="loading" class="mt-6">
-        {{ loading ? 'Signing in…' : 'Sign in' }}
-        <Icon v-if="!loading" name="lucide:arrow-right" class="size-4" />
-      </BaseButton>
-
-      <div class="my-6 flex items-center gap-3">
-        <div class="h-px flex-1 bg-slate-200" />
-        <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Demo access</span>
-        <div class="h-px flex-1 bg-slate-200" />
-      </div>
-
-      <button
-        type="button"
-        class="w-full rounded-xl border border-dashed border-indigo-200 bg-indigo-50 px-4 py-3 text-left transition hover:border-indigo-300 hover:bg-indigo-100/60"
-        @click="useDemoAccount"
-      >
-        <span class="flex items-center justify-between gap-3">
           <span>
-            <span class="block text-xs font-bold text-indigo-900">Use the demo account</span>
-            <span class="mt-0.5 block text-xs text-indigo-600">demo@taskflow.dev · password123</span>
+            <span class="block text-xs font-bold">Use the demo account</span>
+            <span class="mt-0.5 block text-xs opacity-75">demo@taskflow.dev · password123</span>
           </span>
-          <Icon name="lucide:sparkles" class="size-4 shrink-0 text-indigo-500" />
-        </span>
-      </button>
+        </UButton>
 
-      <p class="mt-6 text-center text-sm text-slate-500">
-        New to TaskFlow?
-        <NuxtLink to="/register" class="font-semibold text-brand-600 hover:text-brand-700">Create an account</NuxtLink>
-      </p>
-    </form>
+        <p class="mt-6 text-center text-sm text-muted">
+          New to TaskFlow?
+          <ULink to="/register" class="font-semibold text-primary">Create an account</ULink>
+        </p>
+      </form>
+    </UCard>
 
     <p class="mt-6 text-center text-xs text-slate-500">In-memory demo · Data resets when the server restarts</p>
   </div>

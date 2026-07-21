@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { useForm } from 'vee-validate'
 import type { TaskPayload } from '#shared/types/task'
 import { TASK_STATUSES, taskStatusLabels } from '#shared/types/task'
-import { getMinimumDueDate, validateTask, type TaskValidationErrors } from '#shared/utils/taskValidation'
+import { getMinimumDueDate, validateTask } from '#shared/utils/taskValidation'
 
 const props = withDefaults(defineProps<{
   initialValues?: Partial<TaskPayload>
@@ -20,140 +21,154 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
-const form = reactive<TaskPayload>({
-  title: '',
+const minimumDueDate = getMinimumDueDate()
+const statusItems = TASK_STATUSES.map(status => ({
+  label: taskStatusLabels[status],
+  value: status,
+}))
+
+function getInitialValues(values: Partial<TaskPayload>): TaskPayload {
+  return {
+    title: values.title ?? '',
+    description: values.description ?? '',
+    status: values.status ?? 'pending',
+    dueDate: values.dueDate ?? '',
+  }
+}
+
+const validSeed: TaskPayload = {
+  title: 'Valid task',
   description: '',
   status: 'pending',
-  dueDate: '',
-})
-const errors = ref<TaskValidationErrors>({})
-const touched = reactive<Record<keyof TaskPayload, boolean>>({
-  title: false,
-  description: false,
-  status: false,
-  dueDate: false,
-})
-const minimumDueDate = getMinimumDueDate()
-
-function applyInitialValues(values: Partial<TaskPayload>) {
-  form.title = values.title ?? ''
-  form.description = values.description ?? ''
-  form.status = values.status ?? 'pending'
-  form.dueDate = values.dueDate ?? ''
-  errors.value = {}
-  Object.keys(touched).forEach((key) => {
-    touched[key as keyof TaskPayload] = false
-  })
+  dueDate: minimumDueDate,
 }
 
-watch(() => props.initialValues, applyInitialValues, { immediate: true, deep: true })
-
-function validateField(field: keyof TaskPayload) {
-  touched[field] = true
-  const result = validateTask(form)
-  errors.value[field] = result.errors[field]
-}
-
-function handleSubmit() {
-  Object.keys(touched).forEach((key) => {
-    touched[key as keyof TaskPayload] = true
-  })
-
-  const result = validateTask(form)
-  errors.value = result.errors
-
-  if (!result.valid) {
-    return
+function fieldRule(field: keyof TaskPayload) {
+  return (value: unknown) => {
+    const candidate = { ...validSeed, [field]: value } as TaskPayload
+    return validateTask(candidate).errors[field] ?? true
   }
-
-  emit('submit', {
-    title: form.title.trim(),
-    description: form.description.trim(),
-    status: form.status,
-    dueDate: form.dueDate,
-  })
 }
+
+const {
+  defineField,
+  errors,
+  handleSubmit,
+  resetForm,
+} = useForm<TaskPayload>({
+  initialValues: getInitialValues(props.initialValues),
+  validationSchema: {
+    title: fieldRule('title'),
+    description: fieldRule('description'),
+    status: fieldRule('status'),
+    dueDate: fieldRule('dueDate'),
+  },
+})
+
+const fieldOptions = { validateOnModelUpdate: false }
+const [title, titleProps] = defineField('title', fieldOptions)
+const [description, descriptionProps] = defineField('description', fieldOptions)
+const [status, statusProps] = defineField('status', fieldOptions)
+const [dueDate, dueDateProps] = defineField('dueDate', fieldOptions)
+
+watch(() => props.initialValues, (values) => {
+  resetForm({ values: getInitialValues(values) })
+}, { deep: true })
+
+const onSubmit = handleSubmit((values) => {
+  emit('submit', {
+    title: values.title.trim(),
+    description: values.description.trim(),
+    status: values.status,
+    dueDate: values.dueDate,
+  })
+})
 </script>
 
 <template>
-  <form class="rounded-2xl border border-slate-200 bg-white p-5 shadow-card sm:p-7" novalidate @submit.prevent="handleSubmit">
-    <BaseAlert v-if="submitError" variant="error" title="Unable to save task" class="mb-6">
-      {{ submitError }}
-    </BaseAlert>
-
-    <div class="space-y-6">
-      <BaseInput
-        v-model="form.title"
-        name="title"
-        label="Task title"
-        placeholder="e.g., Q3 Marketing Report"
-        :maxlength="100"
-        :error="touched.title ? errors.title : ''"
-        required
-        @blur="validateField('title')"
+  <UCard :ui="{ body: 'p-5 sm:p-7' }">
+    <form novalidate @submit="onSubmit">
+      <UAlert
+        v-if="submitError"
+        color="error"
+        variant="subtle"
+        icon="i-lucide-circle-alert"
+        title="Unable to save task"
+        :description="submitError"
+        class="mb-6"
       />
 
-      <div>
-        <div class="mb-1.5 flex items-center justify-between gap-3">
-          <label for="description" class="text-sm font-semibold text-slate-700">Description</label>
-          <span class="text-xs text-slate-400">{{ form.description.length }} / 500</span>
-        </div>
-        <textarea
-          id="description"
-          v-model="form.description"
+      <div class="space-y-6">
+        <UFormField name="title" label="Task title" required :error="errors.title">
+          <UInput
+            v-model="title"
+            v-bind="titleProps"
+            name="title"
+            placeholder="e.g., Q3 Marketing Report"
+            :maxlength="100"
+            size="lg"
+            class="w-full"
+            leading-icon="i-lucide-list-todo"
+          />
+        </UFormField>
+
+        <UFormField
           name="description"
-          rows="5"
-          maxlength="500"
-          placeholder="Add detailed instructions or context…"
-          :aria-invalid="Boolean(touched.description && errors.description)"
-          class="w-full resize-y rounded-lg border bg-white px-3 py-2.5 text-sm leading-6 text-slate-900 shadow-sm transition placeholder:text-slate-400"
-          :class="touched.description && errors.description ? 'border-rose-400' : 'border-slate-200 hover:border-slate-300'"
-          @blur="validateField('description')"
-        />
-        <p v-if="touched.description && errors.description" class="mt-1.5 text-xs font-medium text-rose-600">
-          {{ errors.description }}
-        </p>
-      </div>
+          label="Description"
+          :hint="`${description.length} / 500`"
+          :error="errors.description"
+        >
+          <UTextarea
+            v-model="description"
+            v-bind="descriptionProps"
+            name="description"
+            placeholder="Add detailed instructions or context…"
+            :maxlength="500"
+            :rows="5"
+            autoresize
+            size="lg"
+            class="w-full"
+          />
+        </UFormField>
 
-      <div class="grid gap-5 sm:grid-cols-2">
-        <div>
-          <label for="status" class="mb-1.5 block text-sm font-semibold text-slate-700">Status</label>
-          <div class="relative">
-            <select
-              id="status"
-              v-model="form.status"
+        <div class="grid gap-5 sm:grid-cols-2">
+          <UFormField name="status" label="Status" :error="errors.status">
+            <USelect
+              v-model="status"
+              v-bind="statusProps"
               name="status"
-              class="h-11 w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 pr-10 text-sm text-slate-900 shadow-sm hover:border-slate-300"
-              @blur="validateField('status')"
-            >
-              <option v-for="status in TASK_STATUSES" :key="status" :value="status">
-                {{ taskStatusLabels[status] }}
-              </option>
-            </select>
-            <Icon name="lucide:chevron-down" class="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-          </div>
-          <p v-if="touched.status && errors.status" class="mt-1.5 text-xs font-medium text-rose-600">{{ errors.status }}</p>
-        </div>
+              :items="statusItems"
+              value-key="value"
+              size="lg"
+              class="w-full"
+            />
+          </UFormField>
 
-        <BaseInput
-          v-model="form.dueDate"
-          name="dueDate"
-          label="Due date"
-          type="date"
-          :min="minimumDueDate"
-          :error="touched.dueDate ? errors.dueDate : ''"
-          required
-          @blur="validateField('dueDate')"
+          <UFormField name="dueDate" label="Due date" required :error="errors.dueDate">
+            <UInput
+              v-model="dueDate"
+              v-bind="dueDateProps"
+              name="dueDate"
+              type="date"
+              :min="minimumDueDate"
+              size="lg"
+              class="w-full"
+              leading-icon="i-lucide-calendar-days"
+            />
+          </UFormField>
+        </div>
+      </div>
+
+      <div class="mt-8 flex flex-col-reverse gap-3 border-t border-default pt-6 sm:flex-row sm:justify-end">
+        <UButton type="button" color="neutral" variant="outline" size="lg" :disabled="submitting" label="Cancel" @click="emit('cancel')" />
+        <UButton
+          type="submit"
+          size="lg"
+          icon="i-lucide-check"
+          :loading="submitting"
+          :label="submitting ? 'Saving…' : submitLabel"
         />
       </div>
-    </div>
-
-    <div class="mt-8 flex flex-col-reverse gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:justify-end">
-      <BaseButton variant="secondary" :disabled="submitting" @click="emit('cancel')">Cancel</BaseButton>
-      <BaseButton type="submit" :loading="submitting">
-        <Icon v-if="!submitting" name="lucide:check" class="size-4" aria-hidden="true" />
-        {{ submitting ? 'Saving…' : submitLabel }}
-      </BaseButton>
-    </div>
-  </form>
+    </form>
+  </UCard>
 </template>

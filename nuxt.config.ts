@@ -1,15 +1,18 @@
-import tailwindcss from '@tailwindcss/vite'
-
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
   modules: [
     '@pinia/nuxt',
+    '@nuxt/ui',
     '@nuxt/eslint',
-    '@nuxt/icon',
     '@nuxt/test-utils/module',
   ],
+
+  ui: {
+    fonts: false,
+    colorMode: false,
+  },
 
   css: ['~/assets/css/main.css'],
 
@@ -19,10 +22,6 @@ export default defineNuxtConfig({
       pathPrefix: false,
     },
   ],
-
-  vite: {
-    plugins: [tailwindcss()],
-  },
 
   typescript: {
     strict: true,

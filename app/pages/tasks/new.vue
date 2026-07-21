@@ -4,6 +4,7 @@ import type { TaskPayload } from '#shared/types/task'
 useSeoMeta({ title: 'Create Task · TaskFlow' })
 
 const taskStore = useTaskStore()
+const toast = useToast()
 const { saving } = storeToRefs(taskStore)
 const submitError = ref('')
 
@@ -11,8 +12,14 @@ async function handleCreate(payload: TaskPayload) {
   submitError.value = ''
 
   try {
-    const task = await taskStore.addTask(payload)
-    await navigateTo(`/tasks/${task.id}?created=1`)
+    await taskStore.addTask(payload)
+    toast.add({
+      title: 'Task created',
+      description: 'Your new task was added successfully.',
+      color: 'success',
+      icon: 'i-lucide-circle-check',
+    })
+    await navigateTo('/')
   }
   catch (caughtError) {
     submitError.value = getErrorMessage(caughtError, 'Unable to create this task. Please try again.')
@@ -22,10 +29,7 @@ async function handleCreate(payload: TaskPayload) {
 
 <template>
   <div class="mx-auto max-w-3xl">
-    <NuxtLink to="/" class="inline-flex items-center gap-2 rounded-lg text-sm font-semibold text-slate-500 hover:text-slate-900">
-      <Icon name="lucide:arrow-left" class="size-4" aria-hidden="true" />
-      Back to tasks
-    </NuxtLink>
+    <UButton to="/" color="neutral" variant="link" icon="i-lucide-arrow-left" label="Back to tasks" class="px-0" />
 
     <header class="mb-6 mt-5">
       <p class="text-sm font-semibold text-brand-600">New task</p>

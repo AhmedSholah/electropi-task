@@ -57,10 +57,7 @@ async function confirmDelete() {
         <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-950">Tasks</h1>
         <p class="mt-2 text-sm text-slate-500">Manage and track your work efficiently.</p>
       </div>
-      <BaseButton class="shrink-0" @click="navigateTo('/tasks/new')">
-        <Icon name="lucide:plus" class="size-4" aria-hidden="true" />
-        Create task
-      </BaseButton>
+      <UButton icon="i-lucide-plus" size="lg" label="Create task" class="shrink-0" @click="navigateTo('/tasks/new')" />
     </header>
 
     <TaskStats class="mt-7" :stats="stats" />
@@ -73,12 +70,19 @@ async function confirmDelete() {
       />
     </div>
 
-    <BaseAlert v-if="error && !loading" variant="error" title="Unable to load tasks" class="mt-6">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <span>{{ error }}</span>
-        <button type="button" class="font-semibold underline underline-offset-2" @click="retryFetch">Try again</button>
-      </div>
-    </BaseAlert>
+    <UAlert
+      v-if="error && !loading"
+      color="error"
+      variant="subtle"
+      icon="i-lucide-circle-alert"
+      title="Unable to load tasks"
+      :description="error"
+      class="mt-6"
+    >
+      <template #actions>
+        <UButton color="error" variant="link" label="Try again" @click="retryFetch" />
+      </template>
+    </UAlert>
 
     <section class="mt-5" aria-label="Tasks">
       <TaskListSkeleton v-if="loading && !tasks.length" />

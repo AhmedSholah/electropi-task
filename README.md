@@ -8,7 +8,7 @@ TaskFlow is a compact, full-stack task management app built for the Vue.js techn
 - User-scoped task API with create, read, update, and delete operations
 - Task dashboard with live totals for pending, in-progress, and completed work
 - Case-insensitive title search, status filtering, and due-date sorting
-- Reusable create/edit form with immediate client-side validation
+- Reusable create/edit form powered by VeeValidate and Nuxt UI fields
 - Matching server-side validation for all task writes
 - Responsive layout, loading skeletons, distinct empty states, retryable errors, and delete confirmation
 - Two focused Vitest tests for validation and Pinia filtering/sorting
@@ -18,7 +18,8 @@ TaskFlow is a compact, full-stack task management app built for the Vue.js techn
 - Nuxt 4 and Vue 3 Composition API (`<script setup lang="ts">`)
 - TypeScript in strict mode
 - Pinia with Nuxt SSR support
-- Tailwind CSS 4 through the official Vite plugin
+- Nuxt UI 4 with its Tailwind CSS 4 design system
+- VeeValidate 4 for client-side form state and validation
 - Nuxt server API routes and in-memory repositories
 - Vitest, Vue Test Utils, Nuxt Test Utils, and Happy DOM
 
@@ -89,8 +90,7 @@ All task endpoints return `401` without a valid session. Looking up another user
 app/
 ├── assets/css/           Tailwind entry point and theme tokens
 ├── components/
-│   ├── base/             Reusable buttons, inputs, and alerts
-│   └── tasks/            Task cards, filters, form, stats, and states
+│   └── tasks/            Nuxt UI task cards, filters, form, stats, and states
 ├── layouts/              App and authentication shells
 ├── middleware/           Global route protection
 ├── pages/                Nuxt file-based routes
@@ -116,7 +116,7 @@ The Pinia store owns server data, filters, and derived task statistics. Small vi
 - Due date is required and must be later than today.
 - Registration requires a valid email, a name of at least 2 characters, and a password of at least 8 characters.
 
-Task validation is shared between the Vue form and the server handlers. The HTML date field also receives tomorrow as its minimum selectable date.
+VeeValidate manages client form state, touched fields, submission, and error messages around Nuxt UI controls. The task rules themselves are shared with the server handlers so both layers enforce the same constraints. The date field also receives tomorrow as its minimum selectable date.
 
 ## Authentication design
 
