@@ -1,75 +1,146 @@
-# Nuxt Minimal Starter
+# TaskFlow
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+TaskFlow is a compact, full-stack task management app built for the Vue.js technical task. It covers every requested feature and adds a small session-based authentication layer so each user has a private task workspace.
+
+## Features
+
+- Register, sign in, and sign out with an HTTP-only session cookie
+- User-scoped task API with create, read, update, and delete operations
+- Task dashboard with live totals for pending, in-progress, and completed work
+- Case-insensitive title search, status filtering, and due-date sorting
+- Reusable create/edit form with immediate client-side validation
+- Matching server-side validation for all task writes
+- Responsive layout, loading skeletons, distinct empty states, retryable errors, and delete confirmation
+- Two focused Vitest tests for validation and Pinia filtering/sorting
+
+## Tech stack
+
+- Nuxt 4 and Vue 3 Composition API (`<script setup lang="ts">`)
+- TypeScript in strict mode
+- Pinia with Nuxt SSR support
+- Tailwind CSS 4 through the official Vite plugin
+- Nuxt server API routes and in-memory repositories
+- Vitest, Vue Test Utils, Nuxt Test Utils, and Happy DOM
+
+## Requirements
+
+- Node.js 22 or newer
+- pnpm 10 or newer (npm also works)
 
 ## Setup
 
-Make sure to install dependencies:
-
 ```bash
-# npm
-npm install
-
-# pnpm
 pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
-```
-
-## Development Server
-
-Start the development server on `http://localhost:3000`:
-
-```bash
-# npm
-npm run dev
-
-# pnpm
 pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
 ```
 
-## Production
+Open [http://localhost:3000](http://localhost:3000).
 
-Build the application for production:
+Use the included demo account to see seeded tasks:
+
+```text
+Email: demo@taskflow.dev
+Password: password123
+```
+
+You can also register a new account. A new account starts with an empty task list.
+
+## Available scripts
 
 ```bash
-# npm
-npm run build
-
-# pnpm
-pnpm build
-
-# yarn
-yarn build
-
-# bun
-bun run build
+pnpm dev          # start the development server
+pnpm build        # create a production build
+pnpm preview      # preview the production build
+pnpm test         # run tests once
+pnpm test:watch   # run tests in watch mode
+pnpm lint         # run ESLint
+pnpm typecheck    # run Nuxt/Vue type checking
 ```
 
-Locally preview production build:
+## Application routes
 
-```bash
-# npm
-npm run preview
+| Route | Purpose |
+| --- | --- |
+| `/login` | Sign in, including demo-account access |
+| `/register` | Create an account |
+| `/` | Protected task dashboard |
+| `/tasks/new` | Protected task creation form |
+| `/tasks/[id]` | Protected task details and editing |
 
-# pnpm
-pnpm preview
+## API routes
 
-# yarn
-yarn preview
+| Method and route | Purpose |
+| --- | --- |
+| `GET /api/auth/me` | Read the current session |
+| `POST /api/auth/register` | Register and begin a session |
+| `POST /api/auth/login` | Verify credentials and begin a session |
+| `POST /api/auth/logout` | Revoke the current session |
+| `GET /api/tasks` | List the current user's tasks |
+| `POST /api/tasks` | Create a task |
+| `GET /api/tasks/:id` | Read one owned task |
+| `PUT /api/tasks/:id` | Update one owned task |
+| `DELETE /api/tasks/:id` | Delete one owned task |
 
-# bun
-bun run preview
+All task endpoints return `401` without a valid session. Looking up another user's task returns `404`, so ownership details are not leaked.
+
+## Architecture
+
+```text
+app/
+├── assets/css/           Tailwind entry point and theme tokens
+├── components/
+│   ├── base/             Reusable buttons, inputs, and alerts
+│   └── tasks/            Task cards, filters, form, stats, and states
+├── layouts/              App and authentication shells
+├── middleware/           Global route protection
+├── pages/                Nuxt file-based routes
+├── stores/               Auth and task Pinia stores
+└── utils/                Client display and error helpers
+server/
+├── api/auth/             Session endpoints
+├── api/tasks/            Protected task CRUD endpoints
+└── utils/                In-memory repositories and auth helpers
+shared/
+├── types/                Types shared by browser and server
+└── utils/                Shared task validation
+tests/                    Validation and Pinia behavior tests
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+The Pinia store owns server data, filters, and derived task statistics. Small visual state—such as whether a confirmation dialog is open—stays local to the component. Successful mutations update local state from the API response instead of refetching the full list.
+
+## Validation rules
+
+- Title is required and limited to 100 characters.
+- Description is optional and limited to 500 characters.
+- Status must be `pending`, `in_progress`, or `done`.
+- Due date is required and must be later than today.
+- Registration requires a valid email, a name of at least 2 characters, and a password of at least 8 characters.
+
+Task validation is shared between the Vue form and the server handlers. The HTML date field also receives tomorrow as its minimum selectable date.
+
+## Authentication design
+
+Passwords are salted and hashed with Node's built-in `scrypt`. A successful login creates a cryptographically random opaque token stored in an HTTP-only, `SameSite=Lax` cookie. The server keeps only the token-to-user session mapping, and logout revokes that token.
+
+This is intentionally a demonstration backend, not a production identity system. Production work would add persistent storage, rate limiting, password reset and email verification flows, session rotation, audit logs, and CSRF controls appropriate to the deployment.
+
+## Mock API and limitations
+
+- Users, sessions, and tasks are stored in memory and reset whenever the server process restarts.
+- Artificial API delays make loading and mutation states visible during review.
+- Search, filtering, and sorting happen client-side because this exercise uses a deliberately small dataset.
+- Authentication and task ownership are implemented; a database and third-party identity providers are intentionally outside the assignment scope.
+
+## Suggested commit history
+
+For a submitted repository, keep implementation history reviewable with commits such as:
+
+```text
+chore: configure Nuxt with Pinia and Tailwind
+feat: add typed auth and task API routes
+feat: build protected task dashboard
+feat: add reusable task form and validation
+feat: implement editing and deletion flows
+test: cover task validation and filtering
+docs: document setup and architecture
+```
