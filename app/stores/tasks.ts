@@ -1,12 +1,20 @@
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
-import type { Task, TaskPayload, TaskStatus } from '#shared/types/task'
+import { ref } from 'vue'
+import type { Task, TaskListResponse, TaskPayload, TaskSort, TaskStats, TaskStatus } from '#shared/types/task'
 import { getErrorMessage } from '../utils/getErrorMessage'
 
-export type TaskSort = 'due_asc' | 'due_desc' | 'newest'
+const DEFAULT_PAGE_SIZE = 6
+
+const emptyStats = (): TaskStats => ({
+  total: 0,
+  pending: 0,
+  inProgress: 0,
+  done: 0,
+})
 
 export const useTaskStore = defineStore('tasks', () => {
   const tasks = ref<Task[]>([])
+  const stats = ref<TaskStats>(emptyStats())
   const loading = ref(false)
   const saving = ref(false)
   const deletingId = ref<string | null>(null)
@@ -15,52 +23,63 @@ export const useTaskStore = defineStore('tasks', () => {
   const searchQuery = ref('')
   const statusFilter = ref<TaskStatus | 'all'>('all')
   const sortBy = ref<TaskSort>('due_asc')
-  const filteredTasks = computed(() => {
-    const normalizedSearch = searchQuery.value.trim().toLowerCase()
-    const filtered = tasks.value.filter((task) => {
-      const matchesStatus = statusFilter.value === 'all' || task.status === statusFilter.value
-      const matchesSearch = !normalizedSearch || task.title.toLowerCase().includes(normalizedSearch)
+  const currentPage = ref(1)
+  const pageSize = ref(DEFAULT_PAGE_SIZE)
+  const total = ref(0)
+  const totalPages = ref(1)
+  let latestRequest = 0
+  let lastLoadedQuery = ''
 
-      return matchesStatus && matchesSearch
-    })
-
-    return [...filtered].sort((first, second) => {
-      if (sortBy.value === 'newest') {
-        return second.createdAt.localeCompare(first.createdAt)
-      }
-
-      const direction = sortBy.value === 'due_desc' ? -1 : 1
-      return first.dueDate.localeCompare(second.dueDate) * direction
-    })
-  })
-
-  const stats = computed(() => ({
-    total: tasks.value.length,
-    pending: tasks.value.filter(task => task.status === 'pending').length,
-    inProgress: tasks.value.filter(task => task.status === 'in_progress').length,
-    done: tasks.value.filter(task => task.status === 'done').length,
-  }))
+  function getListQuery() {
+    return {
+      search: searchQuery.value.trim(),
+      status: statusFilter.value,
+      sort: sortBy.value,
+      page: currentPage.value,
+      pageSize: pageSize.value,
+    }
+  }
 
   async function fetchTasks(force = false) {
-    if (loaded.value && !force) {
+    const query = getListQuery()
+    const queryKey = JSON.stringify(query)
+
+    if (loaded.value && !force && queryKey === lastLoadedQuery) {
       return tasks.value
     }
 
+    const requestId = ++latestRequest
     loading.value = true
     error.value = null
 
     try {
       const requestFetch = useRequestFetch()
-      tasks.value = await requestFetch<Task[]>('/api/tasks')
-      loaded.value = true
-      return tasks.value
+      const response = await requestFetch<TaskListResponse>('/api/tasks', { query })
+
+      if (requestId === latestRequest) {
+        tasks.value = response.items
+        stats.value = response.stats
+        currentPage.value = response.page
+        pageSize.value = response.pageSize
+        total.value = response.total
+        totalPages.value = response.totalPages
+        loaded.value = true
+        lastLoadedQuery = queryKey
+      }
+
+      return response.items
     }
     catch (caughtError) {
-      error.value = getErrorMessage(caughtError, 'Unable to load tasks. Please try again.')
+      if (requestId === latestRequest) {
+        error.value = getErrorMessage(caughtError, 'Unable to load tasks. Please try again.')
+      }
+
       throw caughtError
     }
     finally {
-      loading.value = false
+      if (requestId === latestRequest) {
+        loading.value = false
+      }
     }
   }
 
@@ -77,15 +96,6 @@ export const useTaskStore = defineStore('tasks', () => {
     try {
       const requestFetch = useRequestFetch()
       const task = await requestFetch<Task>(`/api/tasks/${id}`)
-      const index = tasks.value.findIndex(item => item.id === id)
-
-      if (index === -1) {
-        tasks.value.push(task)
-      }
-      else {
-        tasks.value[index] = task
-      }
-
       return task
     }
     catch (caughtError) {
@@ -105,7 +115,7 @@ export const useTaskStore = defineStore('tasks', () => {
         method: 'POST',
         body: payload,
       })
-      tasks.value.unshift(task)
+      loaded.value = false
       return task
     }
     finally {
@@ -123,13 +133,11 @@ export const useTaskStore = defineStore('tasks', () => {
       })
       const index = tasks.value.findIndex(task => task.id === id)
 
-      if (index === -1) {
-        tasks.value.push(updatedTask)
-      }
-      else {
+      if (index !== -1) {
         tasks.value[index] = updatedTask
       }
 
+      loaded.value = false
       return updatedTask
     }
     finally {
@@ -143,6 +151,7 @@ export const useTaskStore = defineStore('tasks', () => {
     try {
       await $fetch(`/api/tasks/${id}`, { method: 'DELETE' })
       tasks.value = tasks.value.filter(task => task.id !== id)
+      loaded.value = false
     }
     finally {
       deletingId.value = null
@@ -153,12 +162,19 @@ export const useTaskStore = defineStore('tasks', () => {
     searchQuery.value = ''
     statusFilter.value = 'all'
     sortBy.value = 'due_asc'
+    currentPage.value = 1
   }
 
   function reset() {
+    latestRequest++
     tasks.value = []
+    stats.value = emptyStats()
+    loading.value = false
     loaded.value = false
     error.value = null
+    total.value = 0
+    totalPages.value = 1
+    lastLoadedQuery = ''
     clearFilters()
   }
 
@@ -172,7 +188,10 @@ export const useTaskStore = defineStore('tasks', () => {
     searchQuery,
     statusFilter,
     sortBy,
-    filteredTasks,
+    currentPage,
+    pageSize,
+    total,
+    totalPages,
     stats,
     fetchTasks,
     fetchTask,

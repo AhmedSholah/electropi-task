@@ -45,6 +45,11 @@ async function handleDelete() {
     deleteError.value = getErrorMessage(caughtError, 'Unable to delete this task. Please try again.')
   }
 }
+
+function openDeleteDialog() {
+  deleteError.value = ''
+  showDeleteDialog.value = true
+}
 </script>
 
 <template>
@@ -72,8 +77,10 @@ async function handleDelete() {
           <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-950">Edit task</h1>
           <p class="mt-2 text-sm text-slate-500">Update the task details or change its progress.</p>
         </div>
-        <UButton color="error" variant="ghost" icon="i-lucide-trash-2" label="Delete" @click="showDeleteDialog = true" />
+        <UButton color="error" variant="ghost" icon="i-lucide-trash-2" label="Delete" @click="openDeleteDialog" />
       </header>
+
+      <TaskTimeMeta :created-at="task.createdAt" :updated-at="task.updatedAt" class="mb-6 sm:max-w-md" />
 
       <TaskForm
         :initial-values="task"

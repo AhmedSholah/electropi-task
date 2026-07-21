@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import type { TaskStatus } from '#shared/types/task'
-import type { TaskSort } from '~/stores/tasks'
+import type { TaskSort, TaskStatus } from '#shared/types/task'
 
 defineProps<{
   searchQuery: string
@@ -34,6 +33,7 @@ const sortItems = [
       <UInput
         :model-value="searchQuery"
         type="search"
+        maxlength="100"
         placeholder="Search tasks by title…"
         icon="i-lucide-search"
         size="lg"

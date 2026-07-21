@@ -7,7 +7,8 @@ TaskFlow is a compact, full-stack task management app built for the Vue.js techn
 - Register, sign in, and sign out with an HTTP-only session cookie
 - User-scoped task API with create, read, update, and delete operations
 - Task dashboard with live totals for pending, in-progress, and completed work
-- Case-insensitive title search, status filtering, and due-date sorting
+- Debounced server-side title search, status filtering, sorting, and paginated results
+- Created and live relative last-updated timestamps on task cards and task details
 - Reusable create/edit form powered by VeeValidate and Nuxt UI fields
 - Matching server-side validation for all task writes
 - Responsive layout, loading skeletons, distinct empty states, retryable errors, and delete confirmation
@@ -76,7 +77,7 @@ pnpm typecheck    # run Nuxt/Vue type checking
 | `POST /api/auth/register` | Register and begin a session |
 | `POST /api/auth/login` | Verify credentials and begin a session |
 | `POST /api/auth/logout` | Revoke the current session |
-| `GET /api/tasks` | List the current user's tasks |
+| `GET /api/tasks` | List the current user's tasks with search, filtering, sorting, and pagination |
 | `POST /api/tasks` | Create a task |
 | `GET /api/tasks/:id` | Read one owned task |
 | `PUT /api/tasks/:id` | Update one owned task |
@@ -106,7 +107,9 @@ shared/
 tests/                    Validation and Pinia behavior tests
 ```
 
-The Pinia store owns server data, filters, and derived task statistics. Small visual state—such as whether a confirmation dialog is open—stays local to the component. Successful mutations update local state from the API response instead of refetching the full list.
+The Pinia store owns server data, list query state, pagination metadata, and task statistics. Small visual state—such as whether a confirmation dialog is open—stays local to the component. List searches are debounced, and stale responses are ignored if a newer search has already completed.
+
+`GET /api/tasks` accepts `search`, `status`, `sort`, `page`, and `pageSize` query parameters. Responses include the current page of tasks, filtered totals, page metadata, and unfiltered status counts for the dashboard summary.
 
 ## Validation rules
 
@@ -128,7 +131,7 @@ This is intentionally a demonstration backend, not a production identity system.
 
 - Users, sessions, and tasks are stored in memory and reset whenever the server process restarts.
 - Artificial API delays make loading and mutation states visible during review.
-- Search, filtering, and sorting happen client-side because this exercise uses a deliberately small dataset.
+- Search, filtering, sorting, and pagination are performed by the repository through the task list API; the in-memory repository stands in for a database query.
 - Authentication and task ownership are implemented; a database and third-party identity providers are intentionally outside the assignment scope.
 
 ## Suggested commit history

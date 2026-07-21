@@ -15,9 +15,9 @@ const due = computed(() => getTaskDueMeta(props.task.dueDate, props.task.status)
 <template>
   <UCard
     as="article"
-    class="group min-h-56 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-900/5"
+    class="group min-h-72 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-900/5"
     :class="due.overdue ? 'border-rose-200' : 'border-slate-200'"
-    :ui="{ body: 'flex h-full min-h-56 flex-col p-5' }"
+    :ui="{ body: 'flex h-full min-h-72 flex-col p-5' }"
   >
     <div class="flex items-start justify-between gap-3">
       <TaskStatusBadge :status="task.status" />
@@ -48,7 +48,9 @@ const due = computed(() => getTaskDueMeta(props.task.dueDate, props.task.status)
     </ULink>
     <p class="mt-2 line-clamp-3 text-sm leading-6 text-slate-500">{{ task.description || 'No description provided.' }}</p>
 
-    <div class="mt-auto flex items-center justify-between gap-3 border-t border-slate-100 pt-4 text-xs font-semibold">
+    <TaskTimeMeta :created-at="task.createdAt" :updated-at="task.updatedAt" class="mt-auto" />
+
+    <div class="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-4 text-xs font-semibold">
       <span class="inline-flex items-center gap-1.5" :class="due.overdue ? 'text-rose-600' : 'text-slate-500'">
         <Icon :name="due.overdue ? 'lucide:circle-alert' : 'lucide:calendar-days'" class="size-4" aria-hidden="true" />
         {{ due.label }}

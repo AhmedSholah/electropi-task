@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import type { Task, TaskPayload } from '#shared/types/task'
+import type { Task, TaskListResponse, TaskPayload, TaskSort, TaskStatus } from '#shared/types/task'
 import { DEMO_USER_ID } from './userRepository'
 
 interface StoredTask extends Task {
@@ -82,10 +82,51 @@ function withoutOwner(task: StoredTask): Task {
   return publicTask
 }
 
-export function listTasks(ownerId: string) {
-  return tasks
-    .filter(task => task.ownerId === ownerId)
-    .map(withoutOwner)
+interface ListTasksOptions {
+  search: string
+  status: TaskStatus | 'all'
+  sort: TaskSort
+  page: number
+  pageSize: number
+}
+
+export function listTasks(ownerId: string, options: ListTasksOptions): TaskListResponse {
+  const ownerTasks = tasks.filter(task => task.ownerId === ownerId)
+  const normalizedSearch = options.search.trim().toLowerCase()
+  const filteredTasks = ownerTasks.filter((task) => {
+    const matchesSearch = !normalizedSearch || task.title.toLowerCase().includes(normalizedSearch)
+    const matchesStatus = options.status === 'all' || task.status === options.status
+
+    return matchesSearch && matchesStatus
+  })
+
+  filteredTasks.sort((first, second) => {
+    if (options.sort === 'newest') {
+      return second.createdAt.localeCompare(first.createdAt)
+    }
+
+    const direction = options.sort === 'due_desc' ? -1 : 1
+    return first.dueDate.localeCompare(second.dueDate) * direction
+  })
+
+  const total = filteredTasks.length
+  const totalPages = Math.max(1, Math.ceil(total / options.pageSize))
+  const page = Math.min(options.page, totalPages)
+  const offset = (page - 1) * options.pageSize
+
+  return {
+    items: filteredTasks.slice(offset, offset + options.pageSize).map(withoutOwner),
+    page,
+    pageSize: options.pageSize,
+    total,
+    totalPages,
+    stats: {
+      total: ownerTasks.length,
+      pending: ownerTasks.filter(task => task.status === 'pending').length,
+      inProgress: ownerTasks.filter(task => task.status === 'in_progress').length,
+      done: ownerTasks.filter(task => task.status === 'done').length,
+    },
+  }
 }
 
 export function findTask(ownerId: string, id: string) {
