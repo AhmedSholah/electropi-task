@@ -2,7 +2,7 @@ import { createError, defineEventHandler, readBody, setResponseStatus } from 'h3
 import type { RegisterPayload } from '#shared/types/auth'
 import { startUserSession } from '../../utils/auth'
 import { simulateDelay } from '../../utils/simulateDelay'
-import { createUser, findUserByEmail } from '../../utils/userRepository'
+import { createUser } from '../../utils/userRepository'
 
 export default defineEventHandler(async (event) => {
   await simulateDelay()
@@ -23,12 +23,13 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 422, statusMessage: 'Password must be at least 8 characters.' })
   }
 
-  if (findUserByEmail(email)) {
+  const user = await createUser(name, email, password)
+
+  if (!user) {
     throw createError({ statusCode: 409, statusMessage: 'An account with this email already exists.' })
   }
 
-  const user = createUser(name, email, password)
-  startUserSession(event, user.id)
+  await startUserSession(event, user.id)
   setResponseStatus(event, 201)
 
   return { user }

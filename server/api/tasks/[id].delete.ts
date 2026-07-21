@@ -4,11 +4,11 @@ import { simulateDelay } from '../../utils/simulateDelay'
 import { deleteTask } from '../../utils/taskRepository'
 
 export default defineEventHandler(async (event) => {
-  const user = requireUser(event)
+  const user = await requireUser(event)
   const id = getRouterParam(event, 'id') ?? ''
   await simulateDelay()
 
-  if (!deleteTask(user.id, id)) {
+  if (!await deleteTask(user.id, id)) {
     throw createError({ statusCode: 404, statusMessage: 'Task not found.' })
   }
 

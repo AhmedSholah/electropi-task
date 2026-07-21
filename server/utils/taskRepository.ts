@@ -1,85 +1,18 @@
 import { randomUUID } from 'node:crypto'
+import type { Row } from '@libsql/client'
 import type { Task, TaskListResponse, TaskPayload, TaskSort, TaskStatus } from '#shared/types/task'
-import { DEMO_USER_ID } from './userRepository'
+import { getDatabase } from './database'
 
-interface StoredTask extends Task {
-  ownerId: string
-}
-
-function relativeDate(daysFromToday: number) {
-  const date = new Date()
-  date.setUTCDate(date.getUTCDate() + daysFromToday)
-  return date.toISOString().slice(0, 10)
-}
-
-const now = new Date().toISOString()
-
-const tasks: StoredTask[] = [
-  {
-    id: randomUUID(),
-    ownerId: DEMO_USER_ID,
-    title: 'Update Documentation',
-    description: 'Review and update API endpoints documentation for the v2 release cycle. Ensure all new parameters are covered.',
-    status: 'in_progress',
-    dueDate: relativeDate(1),
-    createdAt: now,
-    updatedAt: now,
-  },
-  {
-    id: randomUUID(),
-    ownerId: DEMO_USER_ID,
-    title: 'Client Onboarding',
-    description: 'Prepare initial configuration and welcome packet for Acme Corp. Schedule the kickoff call.',
-    status: 'pending',
-    dueDate: relativeDate(2),
-    createdAt: now,
-    updatedAt: now,
-  },
-  {
-    id: randomUUID(),
-    ownerId: DEMO_USER_ID,
-    title: 'Fix Login Bug',
-    description: 'Investigate and patch the OAuth timeout issue reported on the mobile staging environment.',
-    status: 'pending',
-    dueDate: relativeDate(-1),
-    createdAt: now,
-    updatedAt: now,
-  },
-  {
-    id: randomUUID(),
-    ownerId: DEMO_USER_ID,
-    title: 'Publish Release Notes',
-    description: 'Summarize the improvements included in the upcoming product release.',
-    status: 'done',
-    dueDate: relativeDate(5),
-    createdAt: now,
-    updatedAt: now,
-  },
-  {
-    id: randomUUID(),
-    ownerId: DEMO_USER_ID,
-    title: 'Review Analytics',
-    description: 'Review the weekly product analytics and share key findings with the team.',
-    status: 'in_progress',
-    dueDate: relativeDate(4),
-    createdAt: now,
-    updatedAt: now,
-  },
-  {
-    id: randomUUID(),
-    ownerId: DEMO_USER_ID,
-    title: 'Archive Sprint Board',
-    description: 'Close completed tickets and archive the previous sprint board.',
-    status: 'done',
-    dueDate: relativeDate(3),
-    createdAt: now,
-    updatedAt: now,
-  },
-]
-
-function withoutOwner(task: StoredTask): Task {
-  const { ownerId: _ownerId, ...publicTask } = task
-  return publicTask
+function rowToTask(row: Row): Task {
+  return {
+    id: String(row.id),
+    title: String(row.title),
+    description: String(row.description),
+    status: String(row.status) as TaskStatus,
+    dueDate: String(row.due_date),
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  }
 }
 
 interface ListTasksOptions {
@@ -90,8 +23,16 @@ interface ListTasksOptions {
   pageSize: number
 }
 
-export function listTasks(ownerId: string, options: ListTasksOptions): TaskListResponse {
-  const ownerTasks = tasks.filter(task => task.ownerId === ownerId)
+export async function listTasks(ownerId: string, options: ListTasksOptions): Promise<TaskListResponse> {
+  const result = await getDatabase().execute({
+    sql: `
+      SELECT id, title, description, status, due_date, created_at, updated_at
+      FROM tasks
+      WHERE owner_id = ?
+    `,
+    args: [ownerId],
+  })
+  const ownerTasks = result.rows.map(rowToTask)
   const normalizedSearch = options.search.trim().toLowerCase()
   const filteredTasks = ownerTasks.filter((task) => {
     const matchesSearch = !normalizedSearch || task.title.toLowerCase().includes(normalizedSearch)
@@ -115,7 +56,7 @@ export function listTasks(ownerId: string, options: ListTasksOptions): TaskListR
   const offset = (page - 1) * options.pageSize
 
   return {
-    items: filteredTasks.slice(offset, offset + options.pageSize).map(withoutOwner),
+    items: filteredTasks.slice(offset, offset + options.pageSize),
     page,
     pageSize: options.pageSize,
     total,
@@ -129,16 +70,24 @@ export function listTasks(ownerId: string, options: ListTasksOptions): TaskListR
   }
 }
 
-export function findTask(ownerId: string, id: string) {
-  const task = tasks.find(task => task.ownerId === ownerId && task.id === id)
-  return task ? withoutOwner(task) : null
+export async function findTask(ownerId: string, id: string) {
+  const result = await getDatabase().execute({
+    sql: `
+      SELECT id, title, description, status, due_date, created_at, updated_at
+      FROM tasks
+      WHERE owner_id = ? AND id = ?
+      LIMIT 1
+    `,
+    args: [ownerId, id],
+  })
+
+  return result.rows[0] ? rowToTask(result.rows[0]) : null
 }
 
-export function createTask(ownerId: string, payload: TaskPayload) {
+export async function createTask(ownerId: string, payload: TaskPayload) {
   const timestamp = new Date().toISOString()
-  const task: StoredTask = {
+  const task: Task = {
     id: randomUUID(),
-    ownerId,
     title: payload.title.trim(),
     description: payload.description.trim(),
     status: payload.status,
@@ -147,35 +96,55 @@ export function createTask(ownerId: string, payload: TaskPayload) {
     updatedAt: timestamp,
   }
 
-  tasks.unshift(task)
-  return withoutOwner(task)
-}
-
-export function updateTask(ownerId: string, id: string, payload: TaskPayload) {
-  const task = tasks.find(task => task.ownerId === ownerId && task.id === id)
-
-  if (!task) {
-    return null
-  }
-
-  Object.assign(task, {
-    title: payload.title.trim(),
-    description: payload.description.trim(),
-    status: payload.status,
-    dueDate: payload.dueDate,
-    updatedAt: new Date().toISOString(),
+  await getDatabase().execute({
+    sql: `
+      INSERT INTO tasks (
+        id, owner_id, title, description, status, due_date, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+    args: [
+      task.id,
+      ownerId,
+      task.title,
+      task.description,
+      task.status,
+      task.dueDate,
+      task.createdAt,
+      task.updatedAt,
+    ],
   })
 
-  return withoutOwner(task)
+  return task
 }
 
-export function deleteTask(ownerId: string, id: string) {
-  const index = tasks.findIndex(task => task.ownerId === ownerId && task.id === id)
+export async function updateTask(ownerId: string, id: string, payload: TaskPayload) {
+  const updatedAt = new Date().toISOString()
+  const result = await getDatabase().execute({
+    sql: `
+      UPDATE tasks
+      SET title = ?, description = ?, status = ?, due_date = ?, updated_at = ?
+      WHERE owner_id = ? AND id = ?
+      RETURNING id, title, description, status, due_date, created_at, updated_at
+    `,
+    args: [
+      payload.title.trim(),
+      payload.description.trim(),
+      payload.status,
+      payload.dueDate,
+      updatedAt,
+      ownerId,
+      id,
+    ],
+  })
 
-  if (index === -1) {
-    return false
-  }
+  return result.rows[0] ? rowToTask(result.rows[0]) : null
+}
 
-  tasks.splice(index, 1)
-  return true
+export async function deleteTask(ownerId: string, id: string) {
+  const result = await getDatabase().execute({
+    sql: 'DELETE FROM tasks WHERE owner_id = ? AND id = ?',
+    args: [ownerId, id],
+  })
+
+  return result.rowsAffected > 0
 }

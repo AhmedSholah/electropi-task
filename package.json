@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "build": "nuxt build",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "db:seed": "tsx scripts/seed.ts",
+    "db:setup": "tsx scripts/setup-database.ts",
     "dev": "nuxt dev",
     "lint": "eslint .",
     "generate": "nuxt generate",
@@ -16,6 +19,7 @@
   "dependencies": {
     "@iconify-json/lucide": "^1.2.68",
     "@internationalized/date": "^3.12.2",
+    "@libsql/client": "^0.17.4",
     "@nuxt/eslint": "1.16.0",
     "@nuxt/icon": "2.3.1",
     "@nuxt/ui": "^4.10.0",
@@ -32,6 +36,7 @@
     "@vue/test-utils": "^2.4.11",
     "happy-dom": "^20.11.0",
     "tailwindcss": "^4.1.18",
+    "tsx": "^4.23.1",
     "typescript": "^6.0.3",
     "vitest": "^4.1.10",
     "vue-tsc": "^3.2.5"

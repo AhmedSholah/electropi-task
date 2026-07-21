@@ -37,7 +37,7 @@ function readPositiveInteger(value: unknown, fallback: number, maximum?: number)
 }
 
 export default defineEventHandler(async (event) => {
-  const user = requireUser(event)
+  const user = await requireUser(event)
   const query = getQuery(event)
   const search = readString(query.search)?.trim() ?? ''
   const requestedStatus = readString(query.status) ?? 'all'
@@ -59,7 +59,7 @@ export default defineEventHandler(async (event) => {
 
   await simulateDelay(650)
 
-  return listTasks(user.id, {
+  return await listTasks(user.id, {
     search,
     status: requestedStatus as TaskStatus | 'all',
     sort: requestedSort as TaskSort,

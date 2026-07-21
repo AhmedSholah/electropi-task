@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const user = findUserByEmail(email)
+  const user = await findUserByEmail(email)
 
   if (!user || !verifyPassword(user, password)) {
     throw createError({
@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  startUserSession(event, user.id)
+  await startUserSession(event, user.id)
 
   return { user: getPublicUser(user) }
 })

@@ -1,10 +1,17 @@
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
+import { migrateDatabase } from '../database/migrate'
+import { seedDatabase } from '../database/seed'
 import { listTasks } from '../server/utils/taskRepository'
 import { DEMO_USER_ID } from '../server/utils/userRepository'
 
 describe('task repository listing', () => {
-  it('searches and filters case-insensitively before paginating', () => {
-    const result = listTasks(DEMO_USER_ID, {
+  beforeAll(async () => {
+    await migrateDatabase()
+    await seedDatabase()
+  })
+
+  it('searches and filters case-insensitively before paginating', async () => {
+    const result = await listTasks(DEMO_USER_ID, {
       search: 'ANALYTICS',
       status: 'in_progress',
       sort: 'due_asc',
@@ -17,8 +24,8 @@ describe('task repository listing', () => {
     expect(result.stats).toEqual({ total: 6, pending: 2, inProgress: 2, done: 2 })
   })
 
-  it('sorts the full result set before selecting a page', () => {
-    const result = listTasks(DEMO_USER_ID, {
+  it('sorts the full result set before selecting a page', async () => {
+    const result = await listTasks(DEMO_USER_ID, {
       search: '',
       status: 'all',
       sort: 'due_asc',

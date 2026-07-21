@@ -17,8 +17,8 @@ const cookieOptions = {
   path: '/',
 }
 
-export function startUserSession(event: H3Event, userId: string) {
-  const token = createSession(userId)
+export async function startUserSession(event: H3Event, userId: string) {
+  const token = await createSession(userId)
 
   setCookie(event, SESSION_COOKIE, token, {
     ...cookieOptions,
@@ -26,31 +26,31 @@ export function startUserSession(event: H3Event, userId: string) {
   })
 }
 
-export function endUserSession(event: H3Event) {
+export async function endUserSession(event: H3Event) {
   const token = getCookie(event, SESSION_COOKIE)
 
   if (token) {
-    revokeSession(token)
+    await revokeSession(token)
   }
 
   deleteCookie(event, SESSION_COOKIE, cookieOptions)
 }
 
-export function getOptionalUser(event: H3Event) {
+export async function getOptionalUser(event: H3Event) {
   const token = getCookie(event, SESSION_COOKIE)
 
   if (!token) {
     return null
   }
 
-  const session = resolveSession(token)
-  const user = session ? findUserById(session.userId) : null
+  const session = await resolveSession(token)
+  const user = session ? await findUserById(session.userId) : null
 
   return user ? getPublicUser(user) : null
 }
 
-export function requireUser(event: H3Event) {
-  const user = getOptionalUser(event)
+export async function requireUser(event: H3Event) {
+  const user = await getOptionalUser(event)
 
   if (!user) {
     throw createError({

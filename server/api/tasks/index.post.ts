@@ -5,10 +5,10 @@ import { simulateDelay } from '../../utils/simulateDelay'
 import { createTask } from '../../utils/taskRepository'
 
 export default defineEventHandler(async (event) => {
-  const user = requireUser(event)
+  const user = await requireUser(event)
   const payload = await readTaskPayload(event)
   await simulateDelay()
-  const task = createTask(user.id, payload)
+  const task = await createTask(user.id, payload)
 
   setResponseStatus(event, 201)
   return task

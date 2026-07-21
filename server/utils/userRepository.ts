@@ -1,18 +1,30 @@
-import { randomUUID, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto'
+import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto'
+import type { Row } from '@libsql/client'
 import type { AuthUser } from '#shared/types/auth'
+import { getDatabase } from './database'
 
 interface StoredUser extends AuthUser {
   passwordHash: string
   createdAt: string
 }
 
-const DEMO_USER_ID = 'demo-user'
+export const DEMO_USER_ID = 'demo-user'
 
-function hashPassword(password: string) {
+export function hashPassword(password: string) {
   const salt = randomBytes(16).toString('hex')
   const hash = scryptSync(password, salt, 64).toString('hex')
 
   return `${salt}:${hash}`
+}
+
+function toStoredUser(row: Row): StoredUser {
+  return {
+    id: String(row.id),
+    name: String(row.name),
+    email: String(row.email),
+    passwordHash: String(row.password_hash),
+    createdAt: String(row.created_at),
+  }
 }
 
 function toPublicUser(user: StoredUser): AuthUser {
@@ -23,29 +35,39 @@ function toPublicUser(user: StoredUser): AuthUser {
   }
 }
 
-const users: StoredUser[] = [
-  {
-    id: DEMO_USER_ID,
-    name: 'Demo User',
-    email: 'demo@taskflow.dev',
-    passwordHash: hashPassword('password123'),
-    createdAt: new Date().toISOString(),
-  },
-]
-
 export function normalizeEmail(email: string) {
   return email.trim().toLowerCase()
 }
 
-export function findUserByEmail(email: string) {
-  return users.find(user => user.email === normalizeEmail(email))
+export async function findUserByEmail(email: string) {
+  const result = await getDatabase().execute({
+    sql: `
+      SELECT id, name, email, password_hash, created_at
+      FROM users
+      WHERE email = ? COLLATE NOCASE
+      LIMIT 1
+    `,
+    args: [normalizeEmail(email)],
+  })
+
+  return result.rows[0] ? toStoredUser(result.rows[0]) : undefined
 }
 
-export function findUserById(id: string) {
-  return users.find(user => user.id === id)
+export async function findUserById(id: string) {
+  const result = await getDatabase().execute({
+    sql: `
+      SELECT id, name, email, password_hash, created_at
+      FROM users
+      WHERE id = ?
+      LIMIT 1
+    `,
+    args: [id],
+  })
+
+  return result.rows[0] ? toStoredUser(result.rows[0]) : undefined
 }
 
-export function createUser(name: string, email: string, password: string) {
+export async function createUser(name: string, email: string, password: string) {
   const user: StoredUser = {
     id: randomUUID(),
     name: name.trim(),
@@ -53,10 +75,15 @@ export function createUser(name: string, email: string, password: string) {
     passwordHash: hashPassword(password),
     createdAt: new Date().toISOString(),
   }
+  const result = await getDatabase().execute({
+    sql: `
+      INSERT OR IGNORE INTO users (id, name, email, password_hash, created_at)
+      VALUES (?, ?, ?, ?, ?)
+    `,
+    args: [user.id, user.name, user.email, user.passwordHash, user.createdAt],
+  })
 
-  users.push(user)
-
-  return toPublicUser(user)
+  return result.rowsAffected > 0 ? toPublicUser(user) : null
 }
 
 export function verifyPassword(user: StoredUser, password: string) {
@@ -76,5 +103,3 @@ export function verifyPassword(user: StoredUser, password: string) {
 export function getPublicUser(user: StoredUser) {
   return toPublicUser(user)
 }
-
-export { DEMO_USER_ID }
