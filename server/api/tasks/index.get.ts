@@ -2,7 +2,6 @@ import { createError, defineEventHandler, getQuery } from 'h3'
 import { TASK_SORTS, TASK_STATUSES } from '#shared/types/task'
 import type { TaskSort, TaskStatus } from '#shared/types/task'
 import { requireUser } from '../../utils/auth'
-import { simulateDelay } from '../../utils/simulateDelay'
 import { listTasks } from '../../utils/taskRepository'
 
 const DEFAULT_PAGE_SIZE = 6
@@ -41,7 +40,7 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const search = readString(query.search)?.trim() ?? ''
   const requestedStatus = readString(query.status) ?? 'all'
-  const requestedSort = readString(query.sort) ?? 'due_asc'
+  const requestedSort = readString(query.sort) ?? 'active_due_asc'
   const page = readPositiveInteger(query.page, 1)
   const pageSize = readPositiveInteger(query.pageSize, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE)
 
@@ -56,8 +55,6 @@ export default defineEventHandler(async (event) => {
   if (!TASK_SORTS.includes(requestedSort as TaskSort)) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid task sort.' })
   }
-
-  await simulateDelay(650)
 
   return await listTasks(user.id, {
     search,

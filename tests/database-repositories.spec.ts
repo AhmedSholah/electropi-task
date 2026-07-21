@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { migrateDatabase } from '../database/migrate'
 import { seedDatabase } from '../database/seed'
 import { createSession, resolveSession, revokeSession } from '../server/utils/sessionRepository'
-import { createTask, deleteTask, findTask, updateTask } from '../server/utils/taskRepository'
+import { createTask, deleteTask, findTask, listTasks, updateTask } from '../server/utils/taskRepository'
 import {
   createUser,
   findUserByEmail,
@@ -31,6 +31,26 @@ describe('persistent repositories', () => {
 
     await revokeSession(token)
     expect(await resolveSession(token)).toBeNull()
+  })
+
+  it('adds three starter tasks to every new account', async () => {
+    const email = `${randomUUID()}@example.com`
+    const user = await createUser('New User', email, 'password123')
+    const result = await listTasks(user!.id, {
+      search: '',
+      status: 'all',
+      sort: 'due_asc',
+      page: 1,
+      pageSize: 10,
+    })
+
+    expect(result.items).toHaveLength(3)
+    expect(result.items.map(task => task.title)).toEqual([
+      'Welcome to TaskFlow',
+      'Plan your first project',
+      'Create your first task',
+    ])
+    expect(result.stats).toEqual({ total: 3, pending: 1, inProgress: 1, done: 1 })
   })
 
   it('creates, updates, reads, and deletes an owned task', async () => {

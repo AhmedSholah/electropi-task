@@ -1,5 +1,5 @@
 export const TASK_STATUSES = ['pending', 'in_progress', 'done'] as const
-export const TASK_SORTS = ['due_asc', 'due_desc', 'newest'] as const
+export const TASK_SORTS = ['active_due_asc', 'due_asc', 'due_desc', 'newest'] as const
 
 export type TaskStatus = (typeof TASK_STATUSES)[number]
 export type TaskSort = (typeof TASK_SORTS)[number]

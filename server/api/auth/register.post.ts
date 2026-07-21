@@ -1,11 +1,9 @@
 import { createError, defineEventHandler, readBody, setResponseStatus } from 'h3'
 import type { RegisterPayload } from '#shared/types/auth'
 import { startUserSession } from '../../utils/auth'
-import { simulateDelay } from '../../utils/simulateDelay'
 import { createUser } from '../../utils/userRepository'
 
 export default defineEventHandler(async (event) => {
-  await simulateDelay()
   const body = await readBody<Partial<RegisterPayload>>(event)
   const name = typeof body.name === 'string' ? body.name.trim() : ''
   const email = typeof body.email === 'string' ? body.email.trim() : ''

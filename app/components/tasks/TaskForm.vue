@@ -209,15 +209,20 @@ const onSubmit = handleSubmit((values) => {
         </div>
       </div>
 
-      <div class="mt-8 flex flex-col-reverse gap-3 border-t border-default pt-6 sm:flex-row sm:justify-end">
-        <UButton type="button" color="neutral" variant="outline" size="lg" :disabled="submitting" label="Cancel" @click="emit('cancel')" />
-        <UButton
-          type="submit"
-          size="lg"
-          icon="i-lucide-check"
-          :loading="submitting"
-          :label="submitting ? 'Saving…' : submitLabel"
-        />
+      <div class="mt-8 flex flex-col gap-3 border-t border-default pt-6 sm:flex-row sm:items-center sm:justify-between">
+        <div v-if="$slots['footer-leading']" class="flex sm:mr-auto">
+          <slot name="footer-leading" />
+        </div>
+        <div class="flex flex-col-reverse gap-3 sm:ml-auto sm:flex-row">
+          <UButton type="button" color="neutral" variant="outline" size="lg" :disabled="submitting" label="Cancel" @click="emit('cancel')" />
+          <UButton
+            type="submit"
+            size="lg"
+            icon="i-lucide-check"
+            :loading="submitting"
+            :label="submitting ? 'Saving…' : submitLabel"
+          />
+        </div>
       </div>
     </form>
   </UCard>

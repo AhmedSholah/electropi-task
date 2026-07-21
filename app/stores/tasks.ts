@@ -22,7 +22,7 @@ export const useTaskStore = defineStore('tasks', () => {
   const loaded = ref(false)
   const searchQuery = ref('')
   const statusFilter = ref<TaskStatus | 'all'>('all')
-  const sortBy = ref<TaskSort>('due_asc')
+  const sortBy = ref<TaskSort>('active_due_asc')
   const currentPage = ref(1)
   const pageSize = ref(DEFAULT_PAGE_SIZE)
   const total = ref(0)
@@ -161,7 +161,7 @@ export const useTaskStore = defineStore('tasks', () => {
   function clearFilters() {
     searchQuery.value = ''
     statusFilter.value = 'all'
-    sortBy.value = 'due_asc'
+    sortBy.value = 'active_due_asc'
     currentPage.value = 1
   }
 

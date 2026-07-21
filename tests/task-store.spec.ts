@@ -35,6 +35,12 @@ describe('task store server-side listing', () => {
     vi.unstubAllGlobals()
   })
 
+  it('uses active tasks first as the default sort', () => {
+    const store = useTaskStore()
+
+    expect(store.sortBy).toBe('active_due_asc')
+  })
+
   it('sends search, filter, sort, and pagination to the list endpoint', async () => {
     const requestFetch = vi.fn().mockResolvedValue(taskResponse([task], 2))
     vi.stubGlobal('useRequestFetch', () => requestFetch)

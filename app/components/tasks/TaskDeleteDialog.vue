@@ -12,6 +12,14 @@ const emit = defineEmits<{
   confirm: []
 }>()
 
+const displayedTask = shallowRef<Task | null>(props.task)
+
+watch(() => props.task, (task) => {
+  if (task) {
+    displayedTask.value = task
+  }
+})
+
 function handleOpenChange(open: boolean) {
   if (!open && !props.deleting) {
     emit('close')
@@ -23,6 +31,12 @@ function handleConfirm() {
     emit('confirm')
   }
 }
+
+function handleAfterLeave() {
+  if (!props.task) {
+    displayedTask.value = null
+  }
+}
 </script>
 
 <template>
@@ -31,7 +45,7 @@ function handleConfirm() {
     :dismissible="!deleting"
     :close="{ disabled: deleting }"
     title="Delete this task?"
-    :description="task ? `“${task.title}” will be permanently removed. This action cannot be undone.` : ''"
+    :description="displayedTask ? `“${displayedTask.title}” will be permanently removed. This action cannot be undone.` : ''"
     :ui="{
       content: 'sm:max-w-lg',
       header: 'items-start p-5 pe-16 sm:px-6 sm:pe-16',
@@ -42,6 +56,7 @@ function handleConfirm() {
       footer: 'bg-slate-50/70 p-4 sm:px-6',
     }"
     @update:open="handleOpenChange"
+    @after:leave="handleAfterLeave"
   >
     <template #footer>
       <div class="w-full">

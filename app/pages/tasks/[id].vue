@@ -68,43 +68,71 @@ function openDeleteDialog() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-3xl">
-    <UButton to="/" color="neutral" variant="link" icon="i-lucide-arrow-left" label="Back to tasks" class="px-0" />
-
-    <div v-if="loading && !task" class="mt-6 animate-pulse rounded-2xl border border-slate-200 bg-white p-7">
-      <div class="h-4 w-24 rounded bg-slate-100" />
-      <div class="mt-3 h-8 w-1/2 rounded bg-slate-100" />
-      <div class="mt-8 h-80 rounded-xl bg-slate-50" />
+  <div class="mx-auto max-w-4xl">
+    <div v-if="loading && !task" class="animate-pulse space-y-4">
+      <UCard :ui="{ body: 'p-3 sm:p-4' }">
+        <div class="flex items-center gap-3">
+          <div class="size-8 rounded-lg bg-slate-100" />
+          <div class="min-w-0 flex-1">
+            <div class="h-4 w-2/5 rounded bg-slate-100" />
+            <div class="mt-2 h-3 w-20 rounded bg-slate-100" />
+          </div>
+        </div>
+      </UCard>
+      <div class="h-18 rounded-xl bg-slate-100" />
+      <div class="rounded-2xl border border-slate-200 bg-white p-7">
+        <div class="h-80 rounded-xl bg-slate-50" />
+      </div>
     </div>
 
-    <div v-else-if="loadError" class="mt-6">
+    <div v-else-if="loadError">
+      <UButton to="/" color="neutral" variant="link" icon="i-lucide-arrow-left" label="Back to tasks" class="mb-5 px-0" />
       <UAlert color="error" variant="subtle" icon="i-lucide-circle-alert" title="Task unavailable" :description="loadError" />
       <UButton color="neutral" variant="outline" label="Return to dashboard" class="mt-4" @click="navigateTo('/')" />
     </div>
 
     <template v-else-if="task">
-      <header class="mb-6 mt-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <div class="flex items-center gap-2">
-            <p class="text-sm font-semibold text-brand-600">Task details</p>
-            <TaskStatusBadge :status="task.status" />
+      <UCard class="shadow-sm" :ui="{ body: 'p-3 sm:p-4' }">
+        <div class="flex flex-wrap items-center gap-3">
+          <UButton
+            to="/"
+            color="neutral"
+            variant="ghost"
+            icon="i-lucide-arrow-left"
+            square
+            aria-label="Back to tasks"
+          />
+          <div class="min-w-32 flex-1">
+            <h1 class="truncate font-bold text-slate-950">{{ task.title }}</h1>
+            <p class="text-xs text-slate-500">Editing task</p>
           </div>
-          <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-950">Edit task</h1>
-          <p class="mt-2 text-sm text-slate-500">Update the task details or change its progress.</p>
         </div>
-        <UButton color="error" variant="ghost" icon="i-lucide-trash-2" label="Delete" @click="openDeleteDialog" />
-      </header>
+      </UCard>
 
-      <TaskTimeMeta :created-at="task.createdAt" :updated-at="task.updatedAt" class="mb-6 sm:max-w-md" />
+      <TaskTimeMeta :created-at="task.createdAt" :updated-at="task.updatedAt" class="mt-4" />
 
       <TaskForm
+        class="mt-4 shadow-sm"
         :initial-values="task"
         submit-label="Update task"
         :submitting="updating"
         :submit-error="submitError"
         @submit="handleUpdate"
         @cancel="navigateTo('/')"
-      />
+      >
+        <template #footer-leading>
+          <UButton
+            type="button"
+            color="error"
+            variant="ghost"
+            size="lg"
+            icon="i-lucide-trash-2"
+            label="Delete task"
+            :disabled="updating"
+            @click="openDeleteDialog"
+          />
+        </template>
+      </TaskForm>
 
       <TaskDeleteDialog
         :task="showDeleteDialog ? task : null"

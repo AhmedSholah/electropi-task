@@ -35,16 +35,26 @@ async function handleCreate(payload: TaskPayload) {
 </script>
 
 <template>
-  <div class="mx-auto max-w-3xl">
-    <UButton to="/" color="neutral" variant="link" icon="i-lucide-arrow-left" label="Back to tasks" class="px-0" />
-
-    <header class="mb-6 mt-5">
-      <p class="text-sm font-semibold text-brand-600">New task</p>
-      <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-950">Create a new task</h1>
-      <p class="mt-2 text-sm text-slate-500">Add the details below to keep your work clear and actionable.</p>
-    </header>
+  <div class="mx-auto max-w-4xl">
+    <UCard class="shadow-sm" :ui="{ body: 'p-3 sm:p-4' }">
+      <div class="flex items-center gap-3">
+        <UButton
+          to="/"
+          color="neutral"
+          variant="ghost"
+          icon="i-lucide-arrow-left"
+          square
+          aria-label="Back to tasks"
+        />
+        <div class="min-w-0 flex-1">
+          <h1 class="truncate font-bold text-slate-950">Create a new task</h1>
+          <p class="text-xs text-slate-500">New task</p>
+        </div>
+      </div>
+    </UCard>
 
     <TaskForm
+      class="mt-4 shadow-sm"
       submit-label="Create task"
       :submitting="submitting"
       :submit-error="submitError"
