@@ -5,11 +5,12 @@ useSeoMeta({ title: 'Create Task · TaskFlow' })
 
 const taskStore = useTaskStore()
 const toast = useToast()
-const { saving } = storeToRefs(taskStore)
 const submitError = ref('')
+const submitting = ref(false)
 
 async function handleCreate(payload: TaskPayload) {
   submitError.value = ''
+  submitting.value = true
 
   try {
     await taskStore.addTask(payload)
@@ -23,6 +24,9 @@ async function handleCreate(payload: TaskPayload) {
   }
   catch (caughtError) {
     submitError.value = getErrorMessage(caughtError, 'Unable to create this task. Please try again.')
+  }
+  finally {
+    submitting.value = false
   }
 }
 </script>
@@ -39,7 +43,7 @@ async function handleCreate(payload: TaskPayload) {
 
     <TaskForm
       submit-label="Create task"
-      :submitting="saving"
+      :submitting="submitting"
       :submit-error="submitError"
       @submit="handleCreate"
       @cancel="navigateTo('/')"

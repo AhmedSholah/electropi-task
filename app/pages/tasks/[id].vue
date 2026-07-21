@@ -3,12 +3,14 @@ import type { Task, TaskPayload } from '#shared/types/task'
 
 const route = useRoute()
 const taskStore = useTaskStore()
-const { loading, saving, deletingId } = storeToRefs(taskStore)
+const { loading } = storeToRefs(taskStore)
 const task = ref<Task | null>(null)
 const loadError = ref('')
 const submitError = ref('')
 const deleteError = ref('')
 const showDeleteDialog = ref(false)
+const updating = ref(false)
+const deleting = ref(false)
 const taskId = computed(() => String(route.params.id))
 
 useSeoMeta({
@@ -24,6 +26,7 @@ catch (caughtError) {
 
 async function handleUpdate(payload: TaskPayload) {
   submitError.value = ''
+  updating.value = true
 
   try {
     task.value = await taskStore.updateTask(taskId.value, payload)
@@ -32,10 +35,14 @@ async function handleUpdate(payload: TaskPayload) {
   catch (caughtError) {
     submitError.value = getErrorMessage(caughtError, 'Unable to update this task. Please try again.')
   }
+  finally {
+    updating.value = false
+  }
 }
 
 async function handleDelete() {
   deleteError.value = ''
+  deleting.value = true
 
   try {
     await taskStore.deleteTask(taskId.value)
@@ -43,6 +50,9 @@ async function handleDelete() {
   }
   catch (caughtError) {
     deleteError.value = getErrorMessage(caughtError, 'Unable to delete this task. Please try again.')
+  }
+  finally {
+    deleting.value = false
   }
 }
 
@@ -85,7 +95,7 @@ function openDeleteDialog() {
       <TaskForm
         :initial-values="task"
         submit-label="Update task"
-        :submitting="saving"
+        :submitting="updating"
         :submit-error="submitError"
         @submit="handleUpdate"
         @cancel="navigateTo('/')"
@@ -93,7 +103,7 @@ function openDeleteDialog() {
 
       <TaskDeleteDialog
         :task="showDeleteDialog ? task : null"
-        :deleting="deletingId === task.id"
+        :deleting="deleting"
         :error="deleteError"
         @close="showDeleteDialog = false"
         @confirm="handleDelete"

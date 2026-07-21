@@ -7,7 +7,8 @@ useSeoMeta({ title: 'Sign in · TaskFlow' })
 
 const route = useRoute()
 const authStore = useAuthStore()
-const { loading, error } = storeToRefs(authStore)
+const { error } = storeToRefs(authStore)
+const submitting = ref(false)
 
 const { defineField, errors, handleSubmit, resetForm } = useForm<LoginPayload>({
   initialValues: { email: '', password: '' },
@@ -34,6 +35,8 @@ function useDemoAccount() {
 }
 
 const onSubmit = handleSubmit(async (values) => {
+  submitting.value = true
+
   try {
     await authStore.login(values)
     const requestedRedirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
@@ -42,6 +45,9 @@ const onSubmit = handleSubmit(async (values) => {
   }
   catch {
     // The store exposes a user-friendly API error above the form.
+  }
+  finally {
+    submitting.value = false
   }
 })
 </script>
@@ -100,8 +106,8 @@ const onSubmit = handleSubmit(async (values) => {
           block
           size="lg"
           trailing-icon="i-lucide-arrow-right"
-          :loading="loading"
-          :label="loading ? 'Signing in…' : 'Sign in'"
+          :loading="submitting"
+          :label="submitting ? 'Signing in…' : 'Sign in'"
           class="mt-6"
         />
 

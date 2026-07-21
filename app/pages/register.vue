@@ -12,7 +12,8 @@ definePageMeta({ layout: 'auth' })
 useSeoMeta({ title: 'Create account · TaskFlow' })
 
 const authStore = useAuthStore()
-const { loading, error } = storeToRefs(authStore)
+const { error } = storeToRefs(authStore)
+const submitting = ref(false)
 
 const { defineField, errors, handleSubmit } = useForm<RegisterForm>({
   initialValues: { name: '', email: '', password: '', confirmPassword: '' },
@@ -33,6 +34,8 @@ const [confirmPassword, confirmPasswordProps] = defineField('confirmPassword', f
 onBeforeUnmount(() => authStore.clearError())
 
 const onSubmit = handleSubmit(async (values) => {
+  submitting.value = true
+
   try {
     await authStore.register({
       name: values.name,
@@ -43,6 +46,9 @@ const onSubmit = handleSubmit(async (values) => {
   }
   catch {
     // The store exposes a user-friendly API error above the form.
+  }
+  finally {
+    submitting.value = false
   }
 })
 </script>
@@ -86,8 +92,8 @@ const onSubmit = handleSubmit(async (values) => {
           block
           size="lg"
           trailing-icon="i-lucide-arrow-right"
-          :loading="loading"
-          :label="loading ? 'Creating account…' : 'Create account'"
+          :loading="submitting"
+          :label="submitting ? 'Creating account…' : 'Create account'"
           class="mt-6"
         />
 
